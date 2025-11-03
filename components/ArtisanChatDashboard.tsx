@@ -1,13 +1,13 @@
 import React from 'react';
 import type { Artisan, Conversation } from '../App';
 
-interface ArtisanChatDashboardProps {
+interface ArtisanDashboardProps {
   loggedInArtisan: Artisan;
   conversations: Conversation[];
   onViewChat: (conversationId: string) => void;
 }
 
-const ArtisanChatDashboard: React.FC<ArtisanChatDashboardProps> = ({ loggedInArtisan, conversations, onViewChat }) => {
+const ArtisanDashboard: React.FC<ArtisanDashboardProps> = ({ loggedInArtisan, conversations, onViewChat }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Artisan Profile Card */}
@@ -78,4 +78,4 @@ const ArtisanChatDashboard: React.FC<ArtisanChatDashboardProps> = ({ loggedInArt
   );
 };
 
-export default ArtisanChatDashboard;
+export default ArtisanDashboard;

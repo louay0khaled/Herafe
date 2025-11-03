@@ -1,25 +1,16 @@
 import React from 'react';
 import type { Conversation } from '../App';
 
-interface ConversationListModalProps {
+interface ConversationListPageProps {
   conversations: Conversation[];
   onBack: () => void;
   onSelectConversation: (conversationId: string) => void;
 }
 
-const ConversationListModal: React.FC<ConversationListModalProps> = ({ conversations, onBack, onSelectConversation }) => {
+const ConversationListPage: React.FC<ConversationListPageProps> = ({ conversations, onBack, onSelectConversation }) => {
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-sky-100">
         <div className="flex items-center mb-6">
-            <button
-                onClick={onBack}
-                className="p-2 rounded-full hover:bg-gray-200 transition-colors ml-4"
-                aria-label="رجوع"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
             <h2 id="page-title" className="text-3xl font-bold text-sky-800">محادثاتي</h2>
         </div>
 
@@ -78,4 +69,4 @@ const ConversationListModal: React.FC<ConversationListModalProps> = ({ conversat
   );
 };
 
-export default ConversationListModal;
+export default ConversationListPage;
