@@ -4,9 +4,9 @@ import SearchSection from './components/SearchSection';
 import AdminPanel from './components/AdminPanel';
 import ArtisanList from './components/ArtisanList';
 import ArtisanDetailModal from './components/ArtisanDetailModal';
-import ArtisanDashboard from './components/ArtisanChatDashboard';
-import ChatPage from './components/ChatModal';
-import ConversationListPage from './components/ConversationListModal';
+import ArtisanChatDashboard from './components/ArtisanChatDashboard';
+import ChatModal from './components/ChatModal';
+import ConversationListModal from './components/ConversationListModal';
 
 // --- TYPE DEFINITIONS ---
 
@@ -283,10 +283,10 @@ const App: React.FC = () => {
   const renderView = () => {
     switch(view) {
         case 'chatList':
-            return <ConversationListPage conversations={conversations} onBack={() => setView('main')} onSelectConversation={handleViewChat} />;
+            return <ConversationListModal conversations={conversations} onBack={() => setView('main')} onSelectConversation={handleViewChat} />;
         case 'chatDetail':
             if (activeConversation && artisanForActiveChat) {
-                return <ChatPage conversation={activeConversation} artisan={artisanForActiveChat} currentUserType={loggedInArtisan ? 'artisan' : 'user'} onSendMessage={handleSendMessage} onBack={handleBackFromChat} />;
+                return <ChatModal conversation={activeConversation} artisan={artisanForActiveChat} currentUserType={loggedInArtisan ? 'artisan' : 'user'} onSendMessage={handleSendMessage} onBack={handleBackFromChat} />;
             }
             setView('main');
             return null;
@@ -296,7 +296,7 @@ const App: React.FC = () => {
                 return <AdminPanel artisans={artisans} onAddArtisan={addArtisan} onUpdateArtisan={updateArtisan} onDeleteArtisan={deleteArtisan} />;
             }
             if (loggedInArtisan) {
-                return <ArtisanDashboard loggedInArtisan={loggedInArtisan} conversations={conversations.filter(c => c.artisanId === loggedInArtisan.id)} onViewChat={handleViewChat} />;
+                return <ArtisanChatDashboard loggedInArtisan={loggedInArtisan} conversations={conversations.filter(c => c.artisanId === loggedInArtisan.id)} onViewChat={handleViewChat} />;
             }
             return <>
                 <SearchSection searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedGovernorate={selectedGovernorate} setSelectedGovernorate={setSelectedGovernorate} governorates={uniqueGovernorates} selectedCraft={selectedCraft} setSelectedCraft={setSelectedCraft} crafts={uniqueCrafts} />
