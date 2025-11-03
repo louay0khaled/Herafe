@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Artisan, Conversation } from '../App';
 
-interface ChatPageProps {
+interface ChatModalProps {
   conversation: Conversation;
   artisan: Artisan;
   currentUserType: 'user' | 'artisan';
@@ -9,7 +9,7 @@ interface ChatPageProps {
   onBack: () => void;
 }
 
-const ChatPage: React.FC<ChatPageProps> = ({ conversation, artisan, currentUserType, onSendMessage, onBack }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ conversation, artisan, currentUserType, onSendMessage, onBack }) => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
@@ -108,4 +108,4 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversation, artisan, currentUserT
   );
 };
 
-export default ChatPage;
+export default ChatModal;
