@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Artisan, Conversation } from '../App';
 
-interface ChatModalProps {
+interface ChatPageProps {
   conversation: Conversation;
   artisan: Artisan;
   currentUserType: 'user' | 'artisan';
   onSendMessage: (conversationId: string, text: string) => void;
-  onClose: () => void;
+  onBack: () => void;
 }
 
-const ChatModal: React.FC<ChatModalProps> = ({ conversation, artisan, currentUserType, onSendMessage, onClose }) => {
+const ChatPage: React.FC<ChatPageProps> = ({ conversation, artisan, currentUserType, onSendMessage, onBack }) => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
@@ -18,7 +18,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ conversation, artisan, currentUse
   };
 
   useEffect(() => {
-    setTimeout(scrollToBottom, 100);
+    const timer = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(timer);
   }, [conversation.messages]);
 
   const handleSend = (e: React.FormEvent) => {
@@ -30,15 +31,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ conversation, artisan, currentUse
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-gray-100 flex flex-col animate-fade-in">
+    <div className="max-w-4xl mx-auto h-[calc(100vh-8.5rem)] flex flex-col bg-white rounded-2xl shadow-lg border border-gray-200/80">
       {/* Header */}
-      <header className="flex items-center p-3 bg-white shadow-md z-10 flex-shrink-0">
-        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="رجوع">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-        <div className="flex items-center gap-3 mr-2">
+      <header className="flex items-center p-4 bg-gray-50 z-10 flex-shrink-0 rounded-t-2xl border-b border-gray-200">
+        <div className="flex items-center gap-3">
            {artisan.profileImage ? (
              <img src={artisan.profileImage} alt={artisan.name} className="h-10 w-10 rounded-full object-cover" />
            ) : (
@@ -60,6 +56,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ conversation, artisan, currentUse
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E")`
         }}
       >
+        {conversation.messages.length === 0 && (
+            <div className="text-center py-10 px-4 text-gray-500">
+                <p>هذه بداية محادثتك مع {artisan.name}.</p>
+                <p className="text-sm mt-1">يمكنك طرح الأسئلة حول خدماته أو طلب عرض أسعار.</p>
+            </div>
+        )}
         {conversation.messages.map(msg => (
           <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === currentUserType ? 'justify-end' : 'justify-start'}`}>
              {msg.sender !== currentUserType && (
@@ -87,7 +89,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ conversation, artisan, currentUse
       </main>
 
       {/* Input */}
-      <footer className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
+      <footer className="p-3 bg-white border-t border-gray-200 flex-shrink-0 rounded-b-2xl">
         <form onSubmit={handleSend} className="flex items-center gap-3">
           <input 
             value={inputText} 
@@ -106,4 +108,4 @@ const ChatModal: React.FC<ChatModalProps> = ({ conversation, artisan, currentUse
   );
 };
 
-export default ChatModal;
+export default ChatPage;
