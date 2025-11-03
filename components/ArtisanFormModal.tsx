@@ -34,6 +34,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, onSave }) => {
   const [formData, setFormData] = useState<Omit<Artisan, 'id' | 'rating' | 'reviews'>>(emptyFormState);
   const [isFetchingCover, setIsFetchingCover] = useState(false);
+  const [coverSearchQuery, setCoverSearchQuery] = useState('');
 
   useEffect(() => {
     if (artisan) {
@@ -81,13 +82,13 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
   }
 
   const handleGenerateCover = async () => {
-    if (!formData.craft.trim()) {
-      alert('الرجاء إدخال الحرفة أولاً للبحث عن صورة.');
+    if (!coverSearchQuery.trim()) {
+      alert('الرجاء إدخال كلمة للبحث عن صورة.');
       return;
     }
     setIsFetchingCover(true);
     try {
-      const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(formData.craft)}&per_page=1&orientation=landscape`, {
+      const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(coverSearchQuery)}&per_page=1&orientation=landscape`, {
         headers: {
           Authorization: PEXELS_API_KEY
         }
@@ -103,7 +104,7 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
         const base64 = await fileToBase64(imageBlob as File);
         setFormData(prev => ({ ...prev, coverImage: base64 }));
       } else {
-        alert('لم يتم العثور على صور لهذه الحرفة.');
+        alert('لم يتم العثور على صور لكلمة البحث هذه.');
       }
     } catch (error) {
       console.error("Error fetching cover image from Pexels:", error);
@@ -186,15 +187,28 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
               </div>
 
               <div>
-                <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الغلاف</label>
-                <div className="flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">صورة الغلاف</label>
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                  <div>
+                    <label htmlFor="coverImage" className="sr-only">رفع صورة الغلاف</label>
                     <input type="file" id="coverImage" accept="image/*" onChange={e => handleImageChange(e, 'coverImage')} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+                  </div>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 px-3 text-sm text-gray-400 select-none">أو</span>
+                     <input
+                      type="text"
+                      value={coverSearchQuery}
+                      onChange={(e) => setCoverSearchQuery(e.target.value)}
+                      placeholder="ابحث عن صورة غلاف..."
+                      className="w-full pl-8 pr-12 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleGenerateCover(); }}}
+                    />
                     <button
                       type="button"
                       onClick={handleGenerateCover}
-                      disabled={!formData.craft.trim() || isFetchingCover}
-                      title={!formData.craft.trim() ? "أدخل الحرفة أولاً" : "بحث عن صورة غلاف تلقائياً"}
-                      className="flex-shrink-0 p-2 border border-transparent rounded-full text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                      disabled={!coverSearchQuery.trim() || isFetchingCover}
+                      title="بحث عن صورة غلاف"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 border border-transparent rounded-full text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-sky-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                       aria-label="بحث عن صورة غلاف"
                     >
                       {isFetchingCover ? (
@@ -204,10 +218,11 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
                         </svg>
                       ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M12.586 2.586a2 2 0 012.828 0L18 5.172a2 2 0 010 2.828l-2.586 2.586a2 2 0 01-2.828 0L10 8.828l-2.586 2.586a2 2 0 01-2.828 0L2 8.828a2 2 0 010-2.828l2.586-2.586a2 2 0 012.828 0L10 5.172l2.586-2.586zM10 12a1 1 0 100 2h.01a1 1 0 100-2H10zm-3 2a1 1 0 100 2h.01a1 1 0 100-2H7zm6 0a1 1 0 100 2h.01a1 1 0 100-2H13z" clipRule="evenodd" />
+                          <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                         </svg>
                       )}
                     </button>
+                  </div>
                 </div>
                 {formData.coverImage && <img src={formData.coverImage} alt="Cover preview" className="mt-2 h-24 w-full rounded-md object-cover"/>}
               </div>
