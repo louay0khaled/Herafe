@@ -1,14 +1,10 @@
-
-
-
-
 import React, { useState, useMemo, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import Sidebar from './components/Sidebar';
 import SearchSection from './components/SearchSection';
 import AdminPanel from './components/AdminPanel';
 import ArtisanList from './components/ArtisanList';
 import ArtisanDetailModal from './components/ArtisanDetailModal';
-import ArtisanDashboard from './components/ArtisanDashboard';
 import ChatPage from './components/ChatPage';
 import ConversationListPage from './components/ConversationListPage';
 import LoginModal from './components/LoginModal';
@@ -25,11 +21,9 @@ export interface Artisan {
   description: string;
   rating: number;
   reviews: number;
-  profileImage: string | null;
-  coverImage: string | null;
-  gallery: string[];
-  username?: string;
-  password?: string;
+  profile_image_url: string | null;
+  cover_image_url: string | null;
+  gallery_urls: string[];
 }
 
 export interface Message {
@@ -45,22 +39,7 @@ export interface Conversation {
   customerId: string;
   messages: Message[];
   artisanName: string;
-  artisanProfileImage: string | null;
-}
-
-// Updated to support id for artisans
-export interface QuickLoginData {
-    id?: number;
-    // FIX: Made username optional to align with Artisan type, resolving type error on login.
-    username?: string;
-    name: string;
-    profileImage?: string | null;
-    craft?: string;
-}
-
-export interface LastLoggedInInfo {
-  type: 'admin' | 'artisan';
-  data: QuickLoginData;
+  artisan_profile_image_url: string | null;
 }
 
 // --- MAIN APP COMPONENT ---
@@ -68,11 +47,10 @@ export interface LastLoggedInInfo {
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
   const [splashState, setSplashState] = useState<'visible' | 'hiding' | 'hidden'>('visible');
+  const [session, setSession] = useState<any | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loggedInArtisan, setLoggedInArtisan] = useState<Artisan | null>(null);
-  const [quickLoginAccounts, setQuickLoginAccounts] = useState<LastLoggedInInfo[]>([]);
   const [selectedArtisan, setSelectedArtisan] = useState<Artisan | null>(null);
   const [view, setView] = useState<'main' | 'chatList' | 'chatDetail'>('main');
   
@@ -85,21 +63,38 @@ const App: React.FC = () => {
 
   // Splash Screen Effect
   useEffect(() => {
-    const hideTimer = setTimeout(() => {
-        setSplashState('hiding');
-    }, 2500); // Start hiding after 2.5 seconds
-
-    const removeTimer = setTimeout(() => {
-        setSplashState('hidden');
-    }, 3000); // Remove from DOM after 3 seconds (allowing 500ms for animation)
-
+    const hideTimer = setTimeout(() => setSplashState('hiding'), 2500);
+    const removeTimer = setTimeout(() => setSplashState('hidden'), 3000);
     return () => {
-        clearTimeout(hideTimer);
-        clearTimeout(removeTimer);
+      clearTimeout(hideTimer);
+      clearTimeout(removeTimer);
     };
   }, []);
   
-  // Initial customer ID and login setup from local storage
+  // Fetch artisans and handle auth state changes
+  useEffect(() => {
+    // Fetch all artisans from the database
+    const fetchArtisans = async () => {
+        const { data, error } = await supabase.from('artisans').select('*');
+        if (error) console.error('Error fetching artisans:', error);
+        else setArtisans(data || []);
+    };
+    fetchArtisans();
+
+    // Set up Supabase auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: any) => {
+        setSession(session);
+        if (session?.user?.email?.endsWith('@admin.hirafy')) {
+            setIsAdmin(true);
+        } else {
+            setIsAdmin(false);
+        }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Customer ID for chat
   useEffect(() => {
     let id = localStorage.getItem('hirafy_customer_id');
     if (!id) {
@@ -107,36 +102,14 @@ const App: React.FC = () => {
       localStorage.setItem('hirafy_customer_id', id);
     }
     setCustomerId(id);
-
-    const storedAccounts = localStorage.getItem('hirafy_quickLoginAccounts');
-    if (storedAccounts) {
-        setQuickLoginAccounts(JSON.parse(storedAccounts));
-    }
-
-    const loggedInId = localStorage.getItem('hirafy_loggedInId');
-    if (loggedInId && artisans.length > 0) {
-        if (loggedInId === 'admin') {
-            setIsAdmin(true);
-            setLoggedInArtisan(null);
-        } else {
-            const currentArtisan = artisans.find(a => a.id === parseInt(loggedInId, 10));
-            if (currentArtisan) {
-                setLoggedInArtisan(currentArtisan);
-                setIsAdmin(false);
-            }
-        }
-    }
-  }, [artisans]); // Rerun when artisans list is populated
-
+  }, []);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGovernorate, setSelectedGovernorate] = useState('');
   const [selectedCraft, setSelectedCraft] = useState('');
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!isSidebarOpen);
-  };
+  const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
   
   const handleInitiateLogin = () => {
     setSidebarOpen(false);
@@ -148,105 +121,24 @@ const App: React.FC = () => {
     setSidebarOpen(false);
   };
 
-  const handleLogin = (username: string, password: string): { success: boolean; message: string } => {
-    const loginAndStoreAccount = (accountInfo: LastLoggedInInfo) => {
-        setQuickLoginAccounts(prev => {
-            const isPresent = prev.some(acc => {
-                if(acc.type === 'admin') return accountInfo.type === 'admin';
-                return acc.data.id === accountInfo.data.id;
-            });
-
-            const newList = isPresent ? prev : [...prev, accountInfo];
-            localStorage.setItem('hirafy_quickLoginAccounts', JSON.stringify(newList));
-            return newList;
-        });
-
-        if (accountInfo.type === 'admin') {
-            setIsAdmin(true);
-            setLoggedInArtisan(null);
-            localStorage.setItem('hirafy_loggedInId', 'admin');
-        } else {
-            setLoggedInArtisan(accountInfo.data as Artisan);
-            setIsAdmin(false);
-            localStorage.setItem('hirafy_loggedInId', String((accountInfo.data as Artisan).id));
-        }
-        setLoginModalOpen(false); // Close modal on success
-    };
-
-    if (username.toLowerCase() === 'l_ouai' && password === 'أنا لؤي') {
-      const adminInfo: LastLoggedInInfo = { type: 'admin', data: { username: 'l_ouai', name: 'المسؤول', craft: 'لوحة التحكم' } };
-      loginAndStoreAccount(adminInfo);
-      return { success: true, message: 'تم تسجيل الدخول كمسؤول بنجاح!' };
-    }
-
-    const artisan = artisans.find(a => a.username === username && a.password === password);
-    if (artisan) {
-      const artisanInfo: LastLoggedInInfo = { type: 'artisan', data: artisan };
-      loginAndStoreAccount(artisanInfo);
-      return { success: true, message: `أهلاً بك، ${artisan.name}!` };
-    }
-
-    return { success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة.' };
-  };
-
-  const handleQuickLogin = (account: LastLoggedInInfo) => {
-    if (account.type === 'admin') {
-      setIsAdmin(true);
-      setLoggedInArtisan(null);
-      localStorage.setItem('hirafy_loggedInId', 'admin');
-    } else if (account.data.id) {
-      const artisanToLogin = artisans.find(a => a.id === account.data.id);
-      if (artisanToLogin) {
-        setLoggedInArtisan(artisanToLogin);
-        setIsAdmin(false);
-        localStorage.setItem('hirafy_loggedInId', String(artisanToLogin.id));
-      }
-    }
-    setLoginModalOpen(false); // Close modal on success
-  };
-
-  const handleRemoveQuickLoginAccount = (account: LastLoggedInInfo) => {
-     setQuickLoginAccounts(prev => {
-        const newList = prev.filter(acc => {
-            if (acc.type === 'admin') return account.type !== 'admin';
-            return acc.data.id !== account.data.id;
-        });
-        localStorage.setItem('hirafy_quickLoginAccounts', JSON.stringify(newList));
-        return newList;
-     });
-  };
-
-  const handleLogout = () => {
-    setIsAdmin(false);
-    setLoggedInArtisan(null);
-    localStorage.removeItem('hirafy_loggedInId');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setView('main');
   };
   
   // --- Scroll lock for modals ---
   useEffect(() => {
     const isModalActuallyOpen = !!selectedArtisan || isSidebarOpen || isLoginModalOpen;
-    if (isModalActuallyOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    document.body.style.overflow = isModalActuallyOpen ? 'hidden' : 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
   }, [selectedArtisan, isSidebarOpen, isLoginModalOpen]);
 
   const handleViewArtisan = (artisan: Artisan) => setSelectedArtisan(artisan);
   const handleCloseArtisanModal = () => setSelectedArtisan(null);
   
   const handleRateArtisan = (artisanId: number, rating: number) => {
-    const updateLogic = (prevArtisan: Artisan) => {
-      const newReviews = prevArtisan.reviews + 1;
-      const newRating = ((prevArtisan.rating * prevArtisan.reviews) + rating) / newReviews;
-      return { ...prevArtisan, rating: newRating, reviews: newReviews };
-    };
-    setArtisans(prev => prev.map(a => a.id === artisanId ? updateLogic(a) : a));
-    setSelectedArtisan(prev => (prev && prev.id === artisanId) ? updateLogic(prev) : prev);
+    // This should be a database update in a real scenario
+    console.log(`Rating artisan ${artisanId} with ${rating}`);
   };
   
   // --- CHAT HANDLERS / NAVIGATION ---
@@ -259,7 +151,7 @@ const App: React.FC = () => {
         customerId,
         messages: [],
         artisanName: artisan.name,
-        artisanProfileImage: artisan.profileImage
+        artisan_profile_image_url: artisan.profile_image_url
       }]);
     }
     setSelectedArtisan(null);
@@ -274,11 +166,12 @@ const App: React.FC = () => {
 
   const handleBackFromChat = () => {
     setActiveConversationId(null);
-    setView(loggedInArtisan ? 'main' : 'chatList');
+    setView('chatList');
   };
 
   const handleSendMessage = (conversationId: string, text: string) => {
-    const newMessage: Message = { id: Date.now(), text, sender: loggedInArtisan ? 'artisan' : 'user', timestamp: Date.now() };
+    // This should insert a message into the 'messages' table
+    const newMessage: Message = { id: Date.now(), text, sender: 'user', timestamp: Date.now() };
     setConversations(prev =>
       prev.map(convo => convo.id === conversationId ? { ...convo, messages: [...convo.messages, newMessage] } : convo)
     );
@@ -303,9 +196,33 @@ const App: React.FC = () => {
     });
   }, [artisans, searchQuery, selectedGovernorate, selectedCraft]);
 
-  const addArtisan = (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => setArtisans(prev => [...prev, { ...artisan, id: Date.now(), rating: 0, reviews: 0 }]);
-  const updateArtisan = (updatedArtisan: Artisan) => setArtisans(prev => prev.map(a => a.id === updatedArtisan.id ? updatedArtisan : a));
-  const deleteArtisan = (id: number) => setArtisans(prev => prev.filter(a => a.id !== id));
+  const addArtisan = async (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => {
+    const { data, error } = await supabase.from('artisans').insert([artisanData]).select();
+    if (error) {
+      console.error('Error adding artisan:', error);
+    } else if (data) {
+      setArtisans(prev => [...prev, data[0]]);
+    }
+  };
+
+  const updateArtisan = async (updatedArtisan: Artisan) => {
+    const { id, ...updateData } = updatedArtisan;
+    const { data, error } = await supabase.from('artisans').update(updateData).eq('id', id).select();
+    if (error) {
+      console.error('Error updating artisan:', error);
+    } else if (data) {
+      setArtisans(prev => prev.map(a => a.id === id ? data[0] : a));
+    }
+  };
+
+  const deleteArtisan = async (id: number) => {
+    const { error } = await supabase.from('artisans').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting artisan:', error);
+    } else {
+      setArtisans(prev => prev.filter(a => a.id !== id));
+    }
+  };
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const artisanForActiveChat = activeConversation ? artisans.find(a => a.id === activeConversation.artisanId) : null;
@@ -316,14 +233,13 @@ const App: React.FC = () => {
         <ChatPage
           conversation={activeConversation}
           artisan={artisanForActiveChat}
-          currentUserType={loggedInArtisan ? 'artisan' : 'user'}
+          currentUserType={'user'}
           onSendMessage={handleSendMessage}
           onBack={handleBackFromChat}
         />
       );
     }
 
-    // Default view with header and main content
     const mainContent = () => {
         switch(view) {
             case 'chatList':
@@ -332,9 +248,6 @@ const App: React.FC = () => {
             default:
                 if (isAdmin) {
                     return <AdminPanel artisans={artisans} onAddArtisan={addArtisan} onUpdateArtisan={updateArtisan} onDeleteArtisan={deleteArtisan} />;
-                }
-                if (loggedInArtisan) {
-                    return <ArtisanDashboard loggedInArtisan={loggedInArtisan} conversations={conversations.filter(c => c.artisanId === loggedInArtisan.id)} onViewChat={handleViewChat} />;
                 }
                 return <>
                     <SearchSection searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedGovernorate={selectedGovernorate} setSelectedGovernorate={setSelectedGovernorate} governorates={uniqueGovernorates} selectedCraft={selectedCraft} setSelectedCraft={setSelectedCraft} crafts={uniqueCrafts} />
@@ -362,7 +275,6 @@ const App: React.FC = () => {
                 isOpen={isSidebarOpen}
                 toggleSidebar={toggleSidebar}
                 isAdmin={isAdmin}
-                loggedInArtisan={loggedInArtisan}
                 onLogout={handleLogout}
                 onViewConversations={handleViewConversationList}
                 onGoToHome={handleGoToHome}
@@ -387,10 +299,6 @@ const App: React.FC = () => {
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setLoginModalOpen(false)}
-        onLogin={handleLogin}
-        quickLoginAccounts={quickLoginAccounts}
-        onQuickLogin={handleQuickLogin}
-        onRemoveQuickLoginAccount={handleRemoveQuickLoginAccount}
       />
     </div>
   );

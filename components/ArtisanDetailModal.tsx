@@ -71,14 +71,14 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
 
           {/* Header Section */}
           <div className="relative">
-            {artisan.coverImage ? (
-                <img src={artisan.coverImage} alt="Cover" className="h-32 w-full object-cover rounded-t-2xl" />
+            {artisan.cover_image_url ? (
+                <img src={artisan.cover_image_url} alt="Cover" className="h-32 w-full object-cover rounded-t-2xl" />
             ) : (
                 <div className="h-32 bg-gray-200 rounded-t-2xl"></div>
             )}
             <div className="absolute top-16 left-1/2 -translate-x-1/2 w-36 h-36 bg-gray-300 rounded-full border-4 border-gray-50 flex items-center justify-center overflow-hidden shadow-lg">
-               {artisan.profileImage ? (
-                 <img src={artisan.profileImage} alt={artisan.name} className="w-full h-full object-cover" />
+               {artisan.profile_image_url ? (
+                 <img src={artisan.profile_image_url} alt={artisan.name} className="w-full h-full object-cover" />
                ) : (
                  <span className="text-6xl text-gray-500">{artisan.name.charAt(0)}</span>
                )}
@@ -147,11 +147,11 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
                  <p className="text-gray-600 text-sm leading-relaxed">{artisan.description}</p>
               </div>
 
-              {artisan.gallery && artisan.gallery.length > 0 && (
+              {artisan.gallery_urls && artisan.gallery_urls.length > 0 && (
                 <div>
                   <h3 className="font-bold text-gray-700 text-lg mb-2">معرض الأعمال</h3>
                   <div className="grid grid-cols-3 gap-2">
-                    {artisan.gallery.map((image, index) => (
+                    {artisan.gallery_urls.map((image, index) => (
                       <button key={index} onClick={() => setLightboxIndex(index)} className="aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-sky-500 ring-offset-2">
                         <img src={image} alt={`Work gallery ${index + 1}`} className="w-full h-full object-cover"/>
                       </button>
@@ -172,7 +172,7 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
 
       {lightboxIndex !== null && (
         <ImageLightbox
-          images={artisan.gallery}
+          images={artisan.gallery_urls}
           currentIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
         />

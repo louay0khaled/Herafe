@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Artisan, Conversation } from '../App';
 
@@ -14,14 +13,14 @@ const ArtisanDashboard: React.FC<ArtisanDashboardProps> = ({ loggedInArtisan, co
       {/* Artisan Profile Card */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-sky-100 overflow-hidden">
         <div className="relative">
-          {loggedInArtisan.coverImage ? (
-            <img src={loggedInArtisan.coverImage} alt="Cover" className="h-32 w-full object-cover" />
+          {loggedInArtisan.cover_image_url ? (
+            <img src={loggedInArtisan.cover_image_url} alt="Cover" className="h-32 w-full object-cover" />
           ) : (
             <div className="h-32 bg-gradient-to-r from-sky-50 to-sky-100"></div>
           )}
           <div className="absolute top-16 left-1/2 -translate-x-1/2 w-36 h-36 bg-gray-300 rounded-full border-4 border-white flex items-center justify-center overflow-hidden shadow-md">
-            {loggedInArtisan.profileImage ? (
-              <img src={loggedInArtisan.profileImage} alt={loggedInArtisan.name} className="w-full h-full object-cover" />
+            {loggedInArtisan.profile_image_url ? (
+              <img src={loggedInArtisan.profile_image_url} alt={loggedInArtisan.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-6xl text-gray-500">{loggedInArtisan.name.charAt(0)}</span>
             )}

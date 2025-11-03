@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Artisan, Conversation } from '../App';
 
@@ -42,8 +41,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversation, artisan, currentUserT
             </svg>
           </button>
           <div className="flex items-center gap-3">
-             {artisan.profileImage ? (
-               <img src={artisan.profileImage} alt={artisan.name} className="h-10 w-10 rounded-full object-cover" />
+             {artisan.profile_image_url ? (
+               <img src={artisan.profile_image_url} alt={artisan.name} className="h-10 w-10 rounded-full object-cover" />
              ) : (
                <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xl">
                 {artisan.name.charAt(0)}
@@ -73,8 +72,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversation, artisan, currentUserT
             <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === currentUserType ? 'justify-end' : 'justify-start'}`}>
                {msg.sender !== currentUserType && (
                   <div className="flex-shrink-0 self-end mb-5">
-                       {artisan.profileImage ? (
-                           <img src={artisan.profileImage} alt={artisan.name} className="h-6 w-6 rounded-full object-cover" />
+                       {artisan.profile_image_url ? (
+                           <img src={artisan.profile_image_url} alt={artisan.name} className="h-6 w-6 rounded-full object-cover" />
                        ) : (
                            <div className="h-6 w-6 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xs">
                            {artisan.name.charAt(0)}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { Artisan } from '../App';
 import ArtisanFormModal from './ArtisanFormModal'; // Import the new modal component
@@ -32,7 +31,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
     if ('id' in artisanData) {
       onUpdateArtisan(artisanData);
     } else {
-      // FIX: The type of artisanData now correctly matches what onAddArtisan expects, so the cast is removed.
       onAddArtisan(artisanData);
     }
     handleCloseModal();
@@ -66,8 +64,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
                 <div key={artisan.id} className="p-4 bg-white hover:bg-sky-50/50 transition-colors duration-200 flex items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4 flex-grow">
                     <div className="flex-shrink-0">
-                      {artisan.profileImage ? (
-                        <img src={artisan.profileImage} alt={artisan.name} className="h-12 w-12 rounded-full object-cover" />
+                      {artisan.profile_image_url ? (
+                        <img src={artisan.profile_image_url} alt={artisan.name} className="h-12 w-12 rounded-full object-cover" />
                       ) : (
                         <div className="h-12 w-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xl">
                           {artisan.name.charAt(0)}
@@ -118,7 +116,7 @@ export default AdminPanel;
 
 interface AdminPanelProps {
   artisans: Artisan[];
-  onAddArtisan: (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => void;
-  onUpdateArtisan: (artisan: Artisan) => void;
-  onDeleteArtisan: (id: number) => void;
+  onAddArtisan: (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => Promise<void>;
+  onUpdateArtisan: (artisan: Artisan) => Promise<void>;
+  onDeleteArtisan: (id: number) => Promise<void>;
 }

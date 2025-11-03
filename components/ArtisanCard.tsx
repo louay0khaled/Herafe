@@ -16,9 +16,9 @@ const ArtisanCard: React.FC<ArtisanCardProps> = ({ artisan, animationIndex, onVi
       aria-label={`عرض تفاصيل ${artisan.name}`}
     >
       {/* Cover Image Background */}
-      {artisan.coverImage && (
+      {artisan.cover_image_url && (
         <img
-          src={artisan.coverImage}
+          src={artisan.cover_image_url}
           alt=""
           aria-hidden="true"
           className="absolute top-0 left-0 h-full w-2/3 object-cover z-0 opacity-25"
@@ -31,8 +31,8 @@ const ArtisanCard: React.FC<ArtisanCardProps> = ({ artisan, animationIndex, onVi
 
       {/* Profile Image */}
       <div className="flex-shrink-0 relative z-10">
-        {artisan.profileImage ? (
-          <img src={artisan.profileImage} alt={artisan.name} className="h-28 w-28 rounded-full object-cover" />
+        {artisan.profile_image_url ? (
+          <img src={artisan.profile_image_url} alt={artisan.name} className="h-28 w-28 rounded-full object-cover" />
         ) : (
           <div className="h-28 w-28 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-4xl">
             {artisan.name.charAt(0)}

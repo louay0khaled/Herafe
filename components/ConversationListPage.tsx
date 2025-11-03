@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Conversation } from '../App';
 
@@ -35,8 +34,8 @@ const ConversationListPage: React.FC<ConversationListPageProps> = ({ conversatio
                     className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-sky-100 transition-colors text-right"
                     >
                     <div className="flex-shrink-0">
-                        {convo.artisanProfileImage ? (
-                        <img src={convo.artisanProfileImage} alt={convo.artisanName} className="h-14 w-14 rounded-full object-cover"/>
+                        {convo.artisan_profile_image_url ? (
+                        <img src={convo.artisan_profile_image_url} alt={convo.artisanName} className="h-14 w-14 rounded-full object-cover"/>
                         ) : (
                         <div className="h-14 w-14 rounded-full bg-sky-200 flex items-center justify-center text-sky-700 font-bold text-2xl">
                             {convo.artisanName.charAt(0)}

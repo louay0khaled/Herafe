@@ -5,16 +5,15 @@ interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
   isAdmin: boolean;
-  loggedInArtisan: Artisan | null;
   onLogout: () => void;
   onViewConversations: () => void;
   onGoToHome: () => void;
   onInitiateLogin: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, loggedInArtisan, onLogout, onViewConversations, onGoToHome, onInitiateLogin }) => {
-  const isLoggedIn = isAdmin || !!loggedInArtisan;
-  const user = isAdmin ? { name: 'المسؤول', craft: 'لوحة التحكم', profileImage: null } : loggedInArtisan;
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLogout, onViewConversations, onGoToHome, onInitiateLogin }) => {
+  const isLoggedIn = isAdmin;
+  const user = isAdmin ? { name: 'المسؤول', craft: 'لوحة التحكم', profile_image_url: null } : null;
 
   return (
     <>
@@ -57,8 +56,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, logge
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex-shrink-0">
-                    { user.profileImage ? (
-                      <img src={user.profileImage} alt={user.name} className="h-12 w-12 rounded-full object-cover" />
+                    { user.profile_image_url ? (
+                      <img src={user.profile_image_url} alt={user.name} className="h-12 w-12 rounded-full object-cover" />
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xl">
                         {user.name.charAt(0)}
