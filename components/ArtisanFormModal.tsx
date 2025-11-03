@@ -25,7 +25,7 @@ const PEXELS_API_KEY = 'DQ51Keh60ZQGSFqMaXItS2zMqcZsiFyYYx200B5wHKw9ycoQGxq4HCLY
 
 
 // Helper to convert file to base64
-const fileToBase64 = (file: File): Promise<string> => {
+const fileToBase64 = (file: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -104,7 +104,7 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
         const imageUrl = data.photos[0].src.large;
         const imageResponse = await fetch(imageUrl);
         const imageBlob = await imageResponse.blob();
-        const base64 = await fileToBase64(imageBlob as File);
+        const base64 = await fileToBase64(imageBlob);
         setFormData(prev => ({ ...prev, coverImage: base64 }));
       } else {
         alert('لم يتم العثور على صور لكلمة البحث هذه.');
