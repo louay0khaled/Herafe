@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Artisan } from '../App';
 
 interface ArtisanFormModalProps {
   artisan: Artisan | null;
   onClose: () => void;
-  onSave: (artisanData: Omit<Artisan, 'id'> | Artisan) => void;
+  // FIX: Updated onSave to accept the type for a new artisan, which doesn't include id, rating, or reviews.
+  onSave: (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews'> | Artisan) => void;
 }
 
 const governorates = [

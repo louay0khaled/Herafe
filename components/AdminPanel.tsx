@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Artisan } from '../App';
 import ArtisanFormModal from './ArtisanFormModal'; // Import the new modal component
@@ -27,11 +28,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
     setEditingArtisan(null);
   };
 
-  const handleSaveArtisan = (artisanData: Omit<Artisan, 'id'> | Artisan) => {
+  const handleSaveArtisan = (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews'> | Artisan) => {
     if ('id' in artisanData) {
       onUpdateArtisan(artisanData);
     } else {
-      onAddArtisan(artisanData as Omit<Artisan, 'id' | 'rating' | 'reviews'>);
+      // FIX: The type of artisanData now correctly matches what onAddArtisan expects, so the cast is removed.
+      onAddArtisan(artisanData);
     }
     handleCloseModal();
   };

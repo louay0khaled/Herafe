@@ -1,12 +1,13 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import SearchSection from './components/SearchSection';
 import AdminPanel from './components/AdminPanel';
 import ArtisanList from './components/ArtisanList';
 import ArtisanDetailModal from './components/ArtisanDetailModal';
-import ArtisanDashboard from './components/ArtisanChatDashboard';
-import ChatPage from './components/ChatModal';
-import ConversationListPage from './components/ConversationListModal';
+import ArtisanDashboard from './components/ArtisanDashboard';
+import ChatPage from './components/ChatPage';
+import ConversationListPage from './components/ConversationListPage';
 
 // --- TYPE DEFINITIONS ---
 
@@ -45,7 +46,8 @@ export interface Conversation {
 // Updated to support id for artisans
 export interface QuickLoginData {
     id?: number;
-    username: string;
+    // FIX: Made username optional to align with Artisan type, resolving type error on login.
+    username?: string;
     name: string;
     profileImage?: string | null;
     craft?: string;
