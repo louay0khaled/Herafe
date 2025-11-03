@@ -75,17 +75,17 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
             ) : (
                 <div className="h-32 bg-gray-200 rounded-t-2xl"></div>
             )}
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 w-28 h-28 bg-gray-300 rounded-full border-4 border-gray-50 flex items-center justify-center overflow-hidden">
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 w-36 h-36 bg-gray-300 rounded-full border-4 border-gray-50 flex items-center justify-center overflow-hidden">
                {artisan.profileImage ? (
                  <img src={artisan.profileImage} alt={artisan.name} className="w-full h-full object-cover" />
                ) : (
-                 <span className="text-4xl text-gray-500">{artisan.name.charAt(0)}</span>
+                 <span className="text-6xl text-gray-500">{artisan.name.charAt(0)}</span>
                )}
             </div>
           </div>
 
           {/* Content Section */}
-          <div className="p-6 pt-16 text-center">
+          <div className="p-6 pt-24 text-center">
             <h2 id="modal-title" className="text-2xl font-bold text-gray-800">{artisan.name}</h2>
             <p className="text-gray-500">{artisan.craft}</p>
 
