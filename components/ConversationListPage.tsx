@@ -61,8 +61,7 @@ const ConversationListPage: React.FC<ConversationListPageProps> = ({ conversatio
                     </svg>
                     </button>
                 );
-                })
-            )}
+                })}
             </div>
           )}
         </div>
