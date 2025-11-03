@@ -12,14 +12,28 @@ const governorates = [
   "درعا", "السويداء", "القنيطرة", "إدلب", "دير الزور", "الرقة", "الحسكة"
 ];
 
-const emptyFormState: Omit<Artisan, 'id'> = { name: '', craft: '', governorate: '', phone: '', description: '' };
+const emptyFormState: Omit<Artisan, 'id' | 'rating' | 'reviews'> = { 
+  name: '', craft: '', governorate: '', phone: '', description: '',
+  profileImage: null, coverImage: null, gallery: [] 
+};
+
+// Helper to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
 
 const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, onSave }) => {
-  const [formData, setFormData] = useState<Omit<Artisan, 'id'>>(emptyFormState);
+  const [formData, setFormData] = useState<Omit<Artisan, 'id' | 'rating' | 'reviews'>>(emptyFormState);
 
   useEffect(() => {
     if (artisan) {
-      setFormData(artisan);
+      const {id, rating, reviews, ...editableData} = artisan;
+      setFormData(editableData);
     } else {
       setFormData(emptyFormState);
     }
@@ -41,10 +55,30 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'profileImage' | 'coverImage') => {
+    if (e.target.files && e.target.files[0]) {
+      const base64 = await fileToBase64(e.target.files[0]);
+      setFormData(prev => ({ ...prev, [field]: base64 }));
+    }
+  };
+  
+  const handleGalleryChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const base64Promises = files.map(fileToBase64);
+      const base64Images = await Promise.all(base64Promises);
+      setFormData(prev => ({ ...prev, gallery: [...prev.gallery, ...base64Images] }));
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setFormData(prev => ({...prev, gallery: prev.gallery.filter((_, i) => i !== index)}));
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (artisan) {
-      onSave({ ...formData, id: artisan.id });
+      onSave({ ...formData, id: artisan.id, rating: artisan.rating, reviews: artisan.reviews });
     } else {
       onSave(formData);
     }
@@ -52,7 +86,7 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-60 py-10 overflow-y-auto"
       aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"
@@ -100,8 +134,40 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
             </div>
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
-              <textarea id="description" name="description" value={formData.description} onChange={handleInputChange} placeholder="وصف موجز عن الحرفي وخدماته" required className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" rows={4}></textarea>
+              <textarea id="description" name="description" value={formData.description} onChange={handleInputChange} placeholder="وصف موجز عن الحرفي وخدماته" required className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" rows={3}></textarea>
             </div>
+             {/* Image Uploads */}
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                 <div>
+                    <label htmlFor="profileImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الملف الشخصي</label>
+                    <input type="file" id="profileImage" accept="image/*" onChange={e => handleImageChange(e, 'profileImage')} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+                 </div>
+                 {formData.profileImage && <img src={formData.profileImage} alt="Profile preview" className="h-16 w-16 rounded-full object-cover"/>}
+              </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                 <div>
+                    <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الغلاف</label>
+                    <input type="file" id="coverImage" accept="image/*" onChange={e => handleImageChange(e, 'coverImage')} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+                 </div>
+                 {formData.coverImage && <img src={formData.coverImage} alt="Cover preview" className="h-16 w-full rounded-md object-cover"/>}
+              </div>
+               <div>
+                  <label htmlFor="gallery" className="block text-sm font-medium text-gray-700 mb-1">معرض الأعمال (يمكنك تحديد عدة صور)</label>
+                  <input type="file" id="gallery" accept="image/*" multiple onChange={handleGalleryChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+                   {formData.gallery.length > 0 && (
+                      <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                        {formData.gallery.map((img, index) => (
+                           <div key={index} className="relative group">
+                              <img src={img} alt={`Gallery image ${index+1}`} className="h-20 w-20 rounded-md object-cover"/>
+                               <button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-0 right-0 m-1 h-5 w-5 bg-red-600 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+                           </div>
+                        ))}
+                      </div>
+                   )}
+               </div>
+            </div>
+
             <div className="flex gap-4 pt-4 justify-end border-t border-gray-200">
               <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">إلغاء</button>
               <button type="submit" className="px-6 py-2.5 bg-sky-500 text-white font-semibold rounded-lg hover:bg-sky-600 transition-colors shadow-sm">{artisan ? 'حفظ التغييرات' : 'إضافة الحرفي'}</button>

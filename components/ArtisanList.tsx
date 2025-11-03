@@ -4,9 +4,10 @@ import ArtisanCard from './ArtisanCard';
 
 interface ArtisanListProps {
   artisans: Artisan[];
+  onViewArtisan: (artisan: Artisan) => void;
 }
 
-const ArtisanList: React.FC<ArtisanListProps> = ({ artisans }) => {
+const ArtisanList: React.FC<ArtisanListProps> = ({ artisans, onViewArtisan }) => {
   if (artisans.length === 0) {
     return (
       <div className="text-center py-10 mt-8 max-w-2xl mx-auto bg-white/60 rounded-lg shadow">
@@ -22,7 +23,12 @@ const ArtisanList: React.FC<ArtisanListProps> = ({ artisans }) => {
   return (
     <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {artisans.map((artisan, index) => (
-        <ArtisanCard key={artisan.id} artisan={artisan} animationIndex={index} />
+        <ArtisanCard 
+          key={artisan.id} 
+          artisan={artisan} 
+          animationIndex={index}
+          onView={onViewArtisan} 
+        />
       ))}
     </div>
   );

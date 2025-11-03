@@ -31,7 +31,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
     if ('id' in artisanData) {
       onUpdateArtisan(artisanData);
     } else {
-      onAddArtisan(artisanData);
+      onAddArtisan(artisanData as Omit<Artisan, 'id' | 'rating' | 'reviews'>);
     }
     handleCloseModal();
   };
@@ -61,13 +61,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
           ) : (
             <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 overflow-hidden shadow-sm">
               {artisans.map(artisan => (
-                <div key={artisan.id} className="p-4 bg-white hover:bg-sky-50/50 transition-colors duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex-grow">
-                    <h4 className="font-bold text-lg text-sky-900">{artisan.name}</h4>
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                        <span className="font-medium bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">{artisan.craft}</span>
-                        <span>{artisan.governorate}</span>
-                        <span className="tracking-wider" dir="ltr">{artisan.phone}</span>
+                <div key={artisan.id} className="p-4 bg-white hover:bg-sky-50/50 transition-colors duration-200 flex items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-grow">
+                    <div className="flex-shrink-0">
+                      {artisan.profileImage ? (
+                        <img src={artisan.profileImage} alt={artisan.name} className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xl">
+                          {artisan.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-grow">
+                      <h4 className="font-bold text-lg text-sky-900">{artisan.name}</h4>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1 flex-wrap">
+                          <span className="font-medium bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">{artisan.craft}</span>
+                          <span>{artisan.governorate}</span>
+                          <span className="tracking-wider" dir="ltr">{artisan.phone}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0 self-end sm:self-center">
@@ -105,7 +116,7 @@ export default AdminPanel;
 
 interface AdminPanelProps {
   artisans: Artisan[];
-  onAddArtisan: (artisan: Omit<Artisan, 'id'>) => void;
+  onAddArtisan: (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => void;
   onUpdateArtisan: (artisan: Artisan) => void;
   onDeleteArtisan: (id: number) => void;
 }

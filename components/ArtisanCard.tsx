@@ -4,13 +4,16 @@ import type { Artisan } from '../App';
 interface ArtisanCardProps {
   artisan: Artisan;
   animationIndex: number;
+  onView: (artisan: Artisan) => void;
 }
 
-const ArtisanCard: React.FC<ArtisanCardProps> = ({ artisan, animationIndex }) => {
+const ArtisanCard: React.FC<ArtisanCardProps> = ({ artisan, animationIndex, onView }) => {
   return (
-    <div 
-      className="bg-white rounded-2xl shadow-md p-6 border border-gray-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 transform animate-fade-in"
+    <button
+      onClick={() => onView(artisan)}
+      className="bg-white rounded-2xl shadow-md p-6 border border-gray-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 transform animate-fade-in text-right w-full"
       style={{ animationDelay: `${animationIndex * 50}ms` }}
+      aria-label={`عرض تفاصيل ${artisan.name}`}
     >
       <div className="flex flex-col h-full">
         <div className="flex-grow space-y-4">
@@ -37,10 +40,10 @@ const ArtisanCard: React.FC<ArtisanCardProps> = ({ artisan, animationIndex }) =>
         </div>
         
         <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-gray-500 text-sm">{artisan.description}</p>
+            <p className="text-gray-500 text-sm line-clamp-2">{artisan.description}</p>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 

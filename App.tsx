@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import SearchSection from './components/SearchSection';
 import AdminPanel from './components/AdminPanel';
 import ArtisanList from './components/ArtisanList';
+import ArtisanDetailModal from './components/ArtisanDetailModal'; // Import the new modal
 
 // Define the type for an artisan
 export interface Artisan {
@@ -12,15 +13,22 @@ export interface Artisan {
   governorate: string;
   phone: string;
   description: string;
+  rating: number;
+  reviews: number;
+  profileImage: string | null;
+  coverImage: string | null;
+  gallery: string[];
 }
 
 const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedArtisan, setSelectedArtisan] = useState<Artisan | null>(null); // State for the detail modal
+
   const [artisans, setArtisans] = useState<Artisan[]>([
-    { id: 1, name: 'أحمد نجار', craft: 'نجارة', governorate: 'ريف دمشق', phone: '0912345678', description: 'خبير في صناعة الأثاث المكتبي الكلاسيكي والمعاصر. جودة عالية وأسعار منافسة.' },
-    { id: 2, name: 'فاطمة حداد', craft: 'حدادة', governorate: 'حلب', phone: '0987654321', description: 'متخصصة في تصميم وتنفيذ الأبواب والنوافذ الحديدية المزخرفة بأساليب فنية.' },
-    { id: 3, name: 'سامر كهربجي', craft: 'كهرباء', governorate: 'حمص', phone: '0911223344', description: 'تمديد وصيانة جميع الشبكات الكهربائية للمنازل والمحلات التجارية بخبرة وأمانة.' },
+    { id: 1, name: 'أحمد نجار', craft: 'نجارة', governorate: 'ريف دمشق', phone: '0912345678', description: 'خبير في صناعة الأثاث المكتبي الكلاسيكي والمعاصر. جودة عالية وأسعار منافسة.', rating: 4.8, reviews: 15, profileImage: null, coverImage: null, gallery: [] },
+    { id: 2, name: 'فاطمة حداد', craft: 'حدادة', governorate: 'حلب', phone: '0987654321', description: 'متخصصة في تصميم وتنفيذ الأبواب والنوافذ الحديدية المزخرفة بأساليب فنية.', rating: 4.5, reviews: 22, profileImage: null, coverImage: null, gallery: [] },
+    { id: 3, name: 'سامر كهربجي', craft: 'كهرباء', governorate: 'حمص', phone: '0911223344', description: 'تمديد وصيانة جميع الشبكات الكهربائية للمنازل والمحلات التجارية بخبرة وأمانة.', rating: 4.9, reviews: 30, profileImage: null, coverImage: null, gallery: [] },
   ]);
 
   // Search state
@@ -43,6 +51,15 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setIsAdmin(false);
+  };
+
+  // --- Handlers for Artisan Detail Modal ---
+  const handleViewArtisan = (artisan: Artisan) => {
+    setSelectedArtisan(artisan);
+  };
+
+  const handleCloseArtisanModal = () => {
+    setSelectedArtisan(null);
   };
 
   // --- Dynamic Filter Options ---
@@ -75,8 +92,8 @@ const App: React.FC = () => {
 
 
   // --- Artisan CRUD Functions ---
-  const addArtisan = (artisan: Omit<Artisan, 'id'>) => {
-    setArtisans(prev => [...prev, { ...artisan, id: Date.now() }]);
+  const addArtisan = (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => {
+     setArtisans(prev => [...prev, { ...artisan, id: Date.now(), rating: 0, reviews: 0 }]);
   };
 
   const updateArtisan = (updatedArtisan: Artisan) => {
@@ -87,6 +104,7 @@ const App: React.FC = () => {
     setArtisans(prev => prev.filter(a => a.id !== id));
   };
 
+  const isModalOpen = isSidebarOpen || !!selectedArtisan;
 
   return (
     <div className="min-h-screen bg-transparent animate-fade-in">
@@ -112,7 +130,7 @@ const App: React.FC = () => {
         onLogin={handleLogin}
         onLogout={handleLogout}
       />
-      <main className={`pt-28 px-4 sm:px-6 lg:px-8 pb-10 transition-all duration-300 ${isSidebarOpen ? 'blur-sm pointer-events-none' : ''}`}>
+      <main className={`pt-28 px-4 sm:px-6 lg:px-8 pb-10 transition-all duration-300 ${isModalOpen ? 'blur-sm pointer-events-none' : ''}`}>
         {isAdmin ? (
           <AdminPanel
             artisans={artisans}
@@ -132,10 +150,17 @@ const App: React.FC = () => {
               setSelectedCraft={setSelectedCraft}
               crafts={uniqueCrafts}
             />
-            <ArtisanList artisans={filteredArtisans} />
+            <ArtisanList artisans={filteredArtisans} onViewArtisan={handleViewArtisan} />
           </>
         )}
       </main>
+
+      {selectedArtisan && (
+        <ArtisanDetailModal 
+          artisan={selectedArtisan}
+          onClose={handleCloseArtisanModal}
+        />
+      )}
     </div>
   );
 };
