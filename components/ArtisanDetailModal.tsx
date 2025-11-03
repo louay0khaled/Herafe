@@ -76,7 +76,7 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
             ) : (
                 <div className="h-32 bg-gray-200 rounded-t-2xl"></div>
             )}
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 w-36 h-36 bg-gray-300 rounded-full border-4 border-gray-50 flex items-center justify-center overflow-hidden">
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 w-36 h-36 bg-gray-300 rounded-full border-4 border-gray-50 flex items-center justify-center overflow-hidden shadow-lg">
                {artisan.profileImage ? (
                  <img src={artisan.profileImage} alt={artisan.name} className="w-full h-full object-cover" />
                ) : (

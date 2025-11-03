@@ -11,7 +11,7 @@ const ArtisanCard: React.FC<ArtisanCardProps> = ({ artisan, animationIndex, onVi
   return (
     <button
       onClick={() => onView(artisan)}
-      className="relative bg-white rounded-2xl shadow-md p-6 border border-gray-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 transform animate-fade-in text-right w-full flex items-center gap-6 overflow-hidden"
+      className="relative bg-white rounded-2xl shadow-md p-6 border border-gray-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 transform animate-fade-in text-right w-full flex items-center gap-6 overflow-hidden hover:border-sky-300"
       style={{ animationDelay: `${animationIndex * 50}ms` }}
       aria-label={`عرض تفاصيل ${artisan.name}`}
     >

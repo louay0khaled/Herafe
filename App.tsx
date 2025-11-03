@@ -1,4 +1,7 @@
 
+
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import SearchSection from './components/SearchSection';
@@ -8,6 +11,8 @@ import ArtisanDetailModal from './components/ArtisanDetailModal';
 import ArtisanDashboard from './components/ArtisanDashboard';
 import ChatPage from './components/ChatPage';
 import ConversationListPage from './components/ConversationListPage';
+import LoginModal from './components/LoginModal';
+import SplashScreen from './components/SplashScreen';
 
 // --- TYPE DEFINITIONS ---
 
@@ -62,7 +67,9 @@ export interface LastLoggedInInfo {
 
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
+  const [splashState, setSplashState] = useState<'visible' | 'hiding' | 'hidden'>('visible');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loggedInArtisan, setLoggedInArtisan] = useState<Artisan | null>(null);
   const [quickLoginAccounts, setQuickLoginAccounts] = useState<LastLoggedInInfo[]>([]);
@@ -75,6 +82,22 @@ const App: React.FC = () => {
   const [customerId, setCustomerId] = useState<string>('');
 
   const [artisans, setArtisans] = useState<Artisan[]>([]);
+
+  // Splash Screen Effect
+  useEffect(() => {
+    const hideTimer = setTimeout(() => {
+        setSplashState('hiding');
+    }, 2500); // Start hiding after 2.5 seconds
+
+    const removeTimer = setTimeout(() => {
+        setSplashState('hidden');
+    }, 3000); // Remove from DOM after 3 seconds (allowing 500ms for animation)
+
+    return () => {
+        clearTimeout(hideTimer);
+        clearTimeout(removeTimer);
+    };
+  }, []);
   
   // Initial customer ID and login setup from local storage
   useEffect(() => {
@@ -114,6 +137,11 @@ const App: React.FC = () => {
   const toggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);
   };
+  
+  const handleInitiateLogin = () => {
+    setSidebarOpen(false);
+    setLoginModalOpen(true);
+  };
 
   const handleGoToHome = () => {
     setView('main');
@@ -142,7 +170,7 @@ const App: React.FC = () => {
             setIsAdmin(false);
             localStorage.setItem('hirafy_loggedInId', String((accountInfo.data as Artisan).id));
         }
-        setSidebarOpen(false);
+        setLoginModalOpen(false); // Close modal on success
     };
 
     if (username.toLowerCase() === 'l_ouai' && password === 'أنا لؤي') {
@@ -174,7 +202,7 @@ const App: React.FC = () => {
         localStorage.setItem('hirafy_loggedInId', String(artisanToLogin.id));
       }
     }
-    setSidebarOpen(false);
+    setLoginModalOpen(false); // Close modal on success
   };
 
   const handleRemoveQuickLoginAccount = (account: LastLoggedInInfo) => {
@@ -197,7 +225,7 @@ const App: React.FC = () => {
   
   // --- Scroll lock for modals ---
   useEffect(() => {
-    const isModalActuallyOpen = !!selectedArtisan || isSidebarOpen;
+    const isModalActuallyOpen = !!selectedArtisan || isSidebarOpen || isLoginModalOpen;
     if (isModalActuallyOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -206,7 +234,7 @@ const App: React.FC = () => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedArtisan, isSidebarOpen]);
+  }, [selectedArtisan, isSidebarOpen, isLoginModalOpen]);
 
   const handleViewArtisan = (artisan: Artisan) => setSelectedArtisan(artisan);
   const handleCloseArtisanModal = () => setSelectedArtisan(null);
@@ -283,59 +311,87 @@ const App: React.FC = () => {
   const artisanForActiveChat = activeConversation ? artisans.find(a => a.id === activeConversation.artisanId) : null;
 
   const renderView = () => {
-    switch(view) {
-        case 'chatList':
-            return <ConversationListPage conversations={conversations} onBack={() => setView('main')} onSelectConversation={handleViewChat} />;
-        case 'chatDetail':
-            if (activeConversation && artisanForActiveChat) {
-                return <ChatPage conversation={activeConversation} artisan={artisanForActiveChat} currentUserType={loggedInArtisan ? 'artisan' : 'user'} onSendMessage={handleSendMessage} onBack={handleBackFromChat} />;
-            }
-            setView('main');
-            return null;
-        case 'main':
-        default:
-            if (isAdmin) {
-                return <AdminPanel artisans={artisans} onAddArtisan={addArtisan} onUpdateArtisan={updateArtisan} onDeleteArtisan={deleteArtisan} />;
-            }
-            if (loggedInArtisan) {
-                return <ArtisanDashboard loggedInArtisan={loggedInArtisan} conversations={conversations.filter(c => c.artisanId === loggedInArtisan.id)} onViewChat={handleViewChat} />;
-            }
-            return <>
-                <SearchSection searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedGovernorate={selectedGovernorate} setSelectedGovernorate={setSelectedGovernorate} governorates={uniqueGovernorates} selectedCraft={selectedCraft} setSelectedCraft={setSelectedCraft} crafts={uniqueCrafts} />
-                <ArtisanList artisans={filteredArtisans} onViewArtisan={handleViewArtisan} />
-            </>;
+    if (view === 'chatDetail' && activeConversation && artisanForActiveChat) {
+      return (
+        <ChatPage
+          conversation={activeConversation}
+          artisan={artisanForActiveChat}
+          currentUserType={loggedInArtisan ? 'artisan' : 'user'}
+          onSendMessage={handleSendMessage}
+          onBack={handleBackFromChat}
+        />
+      );
     }
+
+    // Default view with header and main content
+    const mainContent = () => {
+        switch(view) {
+            case 'chatList':
+                return <ConversationListPage conversations={conversations} onBack={() => setView('main')} onSelectConversation={handleViewChat} />;
+            case 'main':
+            default:
+                if (isAdmin) {
+                    return <AdminPanel artisans={artisans} onAddArtisan={addArtisan} onUpdateArtisan={updateArtisan} onDeleteArtisan={deleteArtisan} />;
+                }
+                if (loggedInArtisan) {
+                    return <ArtisanDashboard loggedInArtisan={loggedInArtisan} conversations={conversations.filter(c => c.artisanId === loggedInArtisan.id)} onViewChat={handleViewChat} />;
+                }
+                return <>
+                    <SearchSection searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedGovernorate={selectedGovernorate} setSelectedGovernorate={setSelectedGovernorate} governorates={uniqueGovernorates} selectedCraft={selectedCraft} setSelectedCraft={setSelectedCraft} crafts={uniqueCrafts} />
+                    <ArtisanList artisans={filteredArtisans} onViewArtisan={handleViewArtisan} />
+                </>;
+        }
+    }
+
+    const isBlured = isSidebarOpen || !!selectedArtisan || isLoginModalOpen;
+
+    return (
+        <>
+            <header className="fixed top-0 left-0 right-0 z-30 text-center pt-6 pb-4 bg-white/70 backdrop-blur-sm shadow-sm">
+                <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-sky-700 tracking-wider select-none leading-relaxed py-2" style={{textShadow: '0 2px 8px rgba(0,0,0,0.05)'}}>حِرَفي</h1>
+            </header>
+            
+            <button 
+              onClick={toggleSidebar} 
+              className="fixed top-8 right-4 sm:right-6 lg:right-8 z-50 p-2 rounded-full text-sky-600 bg-white/80 backdrop-blur-sm shadow-md hover:bg-sky-100 hover:shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition" 
+              aria-label="فتح/إغلاق القائمة">
+                <svg className="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+
+            <Sidebar
+                isOpen={isSidebarOpen}
+                toggleSidebar={toggleSidebar}
+                isAdmin={isAdmin}
+                loggedInArtisan={loggedInArtisan}
+                onLogout={handleLogout}
+                onViewConversations={handleViewConversationList}
+                onGoToHome={handleGoToHome}
+                onInitiateLogin={handleInitiateLogin}
+            />
+
+            <main className={`pt-32 px-4 sm:px-6 lg:px-8 pb-10 transition-all duration-300 ${isBlured ? 'blur-md pointer-events-none' : ''}`}>
+                {mainContent()}
+            </main>
+        </>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-transparent animate-fade-in">
-       <header className="fixed top-0 left-0 right-0 z-30 text-center pt-6 pb-4">
-        <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-sky-700 tracking-wider select-none leading-relaxed py-2">حِرَفي</h1>
-      </header>
+    <div className="min-h-screen bg-transparent">
+      {splashState !== 'hidden' && <SplashScreen isHiding={splashState === 'hiding'} />}
       
-      <button onClick={toggleSidebar} className="fixed top-8 right-4 sm:right-6 lg:right-8 z-40 p-2 rounded-full text-sky-600 bg-white/80 backdrop-blur-sm shadow-md hover:bg-sky-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors" aria-label="فتح القائمة">
-        <svg className="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-      </button>
+      {renderView()}
 
-      <Sidebar
-        isOpen={isSidebarOpen}
-        toggleSidebar={toggleSidebar}
-        isAdmin={isAdmin}
-        loggedInArtisan={loggedInArtisan}
-        quickLoginAccounts={quickLoginAccounts}
+      {selectedArtisan && (<ArtisanDetailModal artisan={selectedArtisan} onClose={handleCloseArtisanModal} onRate={handleRateArtisan} onStartChat={handleStartChat} />)}
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
         onLogin={handleLogin}
-        onLogout={handleLogout}
-        onViewConversations={handleViewConversationList}
-        onGoToHome={handleGoToHome}
+        quickLoginAccounts={quickLoginAccounts}
         onQuickLogin={handleQuickLogin}
         onRemoveQuickLoginAccount={handleRemoveQuickLoginAccount}
       />
-
-      <main className={`pt-28 px-4 sm:px-6 lg:px-8 pb-10 transition-all duration-300 ${isSidebarOpen || !!selectedArtisan ? 'blur-sm pointer-events-none' : ''}`}>
-        {renderView()}
-      </main>
-
-      {selectedArtisan && (<ArtisanDetailModal artisan={selectedArtisan} onClose={handleCloseArtisanModal} onRate={handleRateArtisan} onStartChat={handleStartChat} />)}
     </div>
   );
 };
