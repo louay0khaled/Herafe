@@ -5,11 +5,22 @@ import ImageLightbox from './ImageLightbox'; // Import the new lightbox componen
 interface ArtisanDetailModalProps {
   artisan: Artisan;
   onClose: () => void;
+  onRate: (artisanId: number, rating: number) => void;
 }
 
-const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClose }) => {
+const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClose, onRate }) => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isRating, setIsRating] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
+  // Check if user has already rated this artisan on mount
+  useEffect(() => {
+    const ratedArtisans = JSON.parse(localStorage.getItem('rated_artisans') || '[]');
+    if (ratedArtisans.includes(artisan.id)) {
+      setHasRated(true);
+    }
+  }, [artisan.id]);
+  
   // Handle Escape key to close modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -24,10 +35,18 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
   // Format phone number for links
   const formattedPhone = `+963${artisan.phone.substring(1)}`;
 
+  const handleRatingSubmit = (rating: number) => {
+    onRate(artisan.id, rating);
+    const ratedArtisans = JSON.parse(localStorage.getItem('rated_artisans') || '[]');
+    localStorage.setItem('rated_artisans', JSON.stringify([...ratedArtisans, artisan.id]));
+    setHasRated(true);
+    setIsRating(false);
+  };
+
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 animate-fade-in"
+        className="fixed inset-0 z-50 flex items-start justify-center py-6 bg-black bg-opacity-70 animate-fade-in overflow-y-auto"
         aria-labelledby="modal-title"
         role="dialog"
         aria-modal="true"
@@ -102,12 +121,21 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
               </div>
             </div>
             
-             <button className="w-full flex items-center justify-center gap-2 mt-3 px-4 py-3 bg-yellow-100 text-yellow-800 font-bold rounded-lg hover:bg-yellow-200 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <span>تقييم الحرفي</span>
-             </button>
+            <div className="mt-3">
+              {hasRated ? (
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-200 text-gray-500 font-bold rounded-lg cursor-not-allowed">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                  <span>تم التقييم</span>
+                </div>
+              ) : isRating ? (
+                <StarRating onSubmit={handleRatingSubmit} />
+              ) : (
+                <button onClick={() => setIsRating(true)} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-yellow-100 text-yellow-800 font-bold rounded-lg hover:bg-yellow-200 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                  <span>تقييم الحرفي</span>
+                </button>
+              )}
+            </div>
 
             <div className="mt-6 text-right space-y-3">
               <div>
@@ -148,5 +176,38 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
     </>
   );
 };
+
+
+const StarRating: React.FC<{ onSubmit: (rating: number) => void }> = ({ onSubmit }) => {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+
+  return (
+    <div className="flex justify-center items-center p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+      {[...Array(5)].map((_, index) => {
+        const starValue = index + 1;
+        return (
+          <button
+            key={starValue}
+            type="button"
+            className="text-3xl transition-colors duration-200 transform hover:scale-125"
+            onClick={() => {
+              setRating(starValue);
+              onSubmit(starValue);
+            }}
+            onMouseEnter={() => setHover(starValue)}
+            onMouseLeave={() => setHover(rating)}
+            aria-label={`تقييم ${starValue} من 5 نجوم`}
+          >
+            <span className={starValue <= (hover || rating) ? 'text-yellow-400' : 'text-gray-300'}>
+              &#9733;
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 
 export default ArtisanDetailModal;

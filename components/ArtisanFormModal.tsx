@@ -17,6 +17,10 @@ const emptyFormState: Omit<Artisan, 'id' | 'rating' | 'reviews'> = {
   profileImage: null, coverImage: null, gallery: [] 
 };
 
+// Pexels API Key provided by the user
+const PEXELS_API_KEY = 'DQ51Keh60ZQGSFqMaXItS2zMqcZsiFyYYx200B5wHKw9ycoQGxq4HCLY';
+
+
 // Helper to convert file to base64
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -29,6 +33,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, onSave }) => {
   const [formData, setFormData] = useState<Omit<Artisan, 'id' | 'rating' | 'reviews'>>(emptyFormState);
+  const [isFetchingCover, setIsFetchingCover] = useState(false);
 
   useEffect(() => {
     if (artisan) {
@@ -74,6 +79,39 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
   const removeGalleryImage = (index: number) => {
     setFormData(prev => ({...prev, gallery: prev.gallery.filter((_, i) => i !== index)}));
   }
+
+  const handleGenerateCover = async () => {
+    if (!formData.craft.trim()) {
+      alert('الرجاء إدخال الحرفة أولاً للبحث عن صورة.');
+      return;
+    }
+    setIsFetchingCover(true);
+    try {
+      const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(formData.craft)}&per_page=1&orientation=landscape`, {
+        headers: {
+          Authorization: PEXELS_API_KEY
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Pexels API Error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.photos && data.photos.length > 0) {
+        const imageUrl = data.photos[0].src.large;
+        const imageResponse = await fetch(imageUrl);
+        const imageBlob = await imageResponse.blob();
+        const base64 = await fileToBase64(imageBlob as File);
+        setFormData(prev => ({ ...prev, coverImage: base64 }));
+      } else {
+        alert('لم يتم العثور على صور لهذه الحرفة.');
+      }
+    } catch (error) {
+      console.error("Error fetching cover image from Pexels:", error);
+      alert('حدث خطأ أثناء جلب صورة الغلاف. الرجاء المحاولة مرة أخرى.');
+    } finally {
+      setIsFetchingCover(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,22 +174,44 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
               <textarea id="description" name="description" value={formData.description} onChange={handleInputChange} placeholder="وصف موجز عن الحرفي وخدماته" required className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" rows={3}></textarea>
             </div>
+             
              {/* Image Uploads */}
-            <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                 <div>
-                    <label htmlFor="profileImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الملف الشخصي</label>
-                    <input type="file" id="profileImage" accept="image/*" onChange={e => handleImageChange(e, 'profileImage')} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
-                 </div>
-                 {formData.profileImage && <img src={formData.profileImage} alt="Profile preview" className="h-16 w-16 rounded-full object-cover"/>}
+            <div className="space-y-6 pt-2">
+              <div>
+                <label htmlFor="profileImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الملف الشخصي</label>
+                <div className="flex items-center gap-4">
+                  <input type="file" id="profileImage" accept="image/*" onChange={e => handleImageChange(e, 'profileImage')} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+                  {formData.profileImage && <img src={formData.profileImage} alt="Profile preview" className="h-16 w-16 rounded-full object-cover flex-shrink-0"/>}
+                </div>
               </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                 <div>
-                    <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الغلاف</label>
+
+              <div>
+                <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الغلاف</label>
+                <div className="flex items-center gap-2">
                     <input type="file" id="coverImage" accept="image/*" onChange={e => handleImageChange(e, 'coverImage')} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
-                 </div>
-                 {formData.coverImage && <img src={formData.coverImage} alt="Cover preview" className="h-16 w-full rounded-md object-cover"/>}
+                    <button
+                      type="button"
+                      onClick={handleGenerateCover}
+                      disabled={!formData.craft.trim() || isFetchingCover}
+                      title={!formData.craft.trim() ? "أدخل الحرفة أولاً" : "بحث عن صورة غلاف تلقائياً"}
+                      className="flex-shrink-0 p-2 border border-transparent rounded-full text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                      aria-label="بحث عن صورة غلاف"
+                    >
+                      {isFetchingCover ? (
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M12.586 2.586a2 2 0 012.828 0L18 5.172a2 2 0 010 2.828l-2.586 2.586a2 2 0 01-2.828 0L10 8.828l-2.586 2.586a2 2 0 01-2.828 0L2 8.828a2 2 0 010-2.828l2.586-2.586a2 2 0 012.828 0L10 5.172l2.586-2.586zM10 12a1 1 0 100 2h.01a1 1 0 100-2H10zm-3 2a1 1 0 100 2h.01a1 1 0 100-2H7zm6 0a1 1 0 100 2h.01a1 1 0 100-2H13z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                </div>
+                {formData.coverImage && <img src={formData.coverImage} alt="Cover preview" className="mt-2 h-24 w-full rounded-md object-cover"/>}
               </div>
+
                <div>
                   <label htmlFor="gallery" className="block text-sm font-medium text-gray-700 mb-1">معرض الأعمال (يمكنك تحديد عدة صور)</label>
                   <input type="file" id="gallery" accept="image/*" multiple onChange={handleGalleryChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />

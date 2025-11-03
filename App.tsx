@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import SearchSection from './components/SearchSection';
 import AdminPanel from './components/AdminPanel';
@@ -26,9 +26,23 @@ const App: React.FC = () => {
   const [selectedArtisan, setSelectedArtisan] = useState<Artisan | null>(null); // State for the detail modal
 
   const [artisans, setArtisans] = useState<Artisan[]>([
-    { id: 1, name: 'أحمد نجار', craft: 'نجارة', governorate: 'ريف دمشق', phone: '0912345678', description: 'خبير في صناعة الأثاث المكتبي الكلاسيكي والمعاصر. جودة عالية وأسعار منافسة.', rating: 4.8, reviews: 15, profileImage: null, coverImage: null, gallery: [] },
-    { id: 2, name: 'فاطمة حداد', craft: 'حدادة', governorate: 'حلب', phone: '0987654321', description: 'متخصصة في تصميم وتنفيذ الأبواب والنوافذ الحديدية المزخرفة بأساليب فنية.', rating: 4.5, reviews: 22, profileImage: null, coverImage: null, gallery: [] },
-    { id: 3, name: 'سامر كهربجي', craft: 'كهرباء', governorate: 'حمص', phone: '0911223344', description: 'تمديد وصيانة جميع الشبكات الكهربائية للمنازل والمحلات التجارية بخبرة وأمانة.', rating: 4.9, reviews: 30, profileImage: null, coverImage: null, gallery: [] },
+    { 
+      id: 1, 
+      name: 'أحمد نجار', 
+      craft: 'نجارة', 
+      governorate: 'ريف دمشق', 
+      phone: '0912345678', 
+      description: 'خبير في صناعة الأثاث المكتبي الكلاسيكي والمعاصر. جودة عالية وأسعار منافسة.', 
+      rating: 4.8, 
+      reviews: 15,
+      profileImage: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMWE0IDQgMCAwIDAtNCA0aC04YTQgNCAwIDAgMC00LTRWM2E0IDQgMCAwIDEgNC00aDhhNCA0IDAgMCAxIDQgNHoiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSI0Ii8+PHBhdGggZD0iTTcuNDcgMjEuMTNhMTIgMTIgMCAwIDEgOS4wNiAwIi8+PC9zdmc+',
+      coverImage: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMTUwIiB2aWV3Qm94PSIwIDAgNDAgMTUiPjxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSIxNSIgZmlsbD0iI2U1ZjRlYSIvPjxwYXRoIGQ9Ik0gNSA1IEwgMTIgMyBMIDE5IDYgTCAyNSA0IEwgMzIgNyBMIDM1IDUiIHN0cm9rZT0iI2M0ZDRlZSIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48cGF0aCBkPSJNIDUgMTIgTCAxMCA5IEwgMTcgMTIgTCAyOCAxMCBMIDM1IDExIiBzdHJva2U9IiNiZmRiZGEiIGZpbGw9Im5vbmUiIHN0cm9rZS1dpZHRoPSIwLjUiLz48L3N2Zz4=',
+      gallery: [
+        'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlN2VkZWMiPjxwYXRoIGQ9Ik0gNCA0IEwgMjAgNCBMIDIwIDIwIEwgNCAyMCBaIi8+PHBhdGggZD0iTSA2IDcgTCAxMCAxMiBMIDE0IDkgTCAxOCA4IEwgMTggMTggTCA2IDE4IFoiIGZpbGw9IiNhM2FlYWYiLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjciIHI9IjIiIGZpbGw9IiNmYmMxNjQiLz48L3N2Zz4=',
+        'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlZGU5ZTQiPjxwYXRoIGQ9Ik0gNCA0IEwgMjAgNCBMIDIwIDIwIEwgNCAyMCBaIi8+PHBhdGggZD0iTSA0IDE4IEwgNyAxNCBMIDEyIDE2IEwgMTUgMTMgTCAyMCAxNyBMIDIwIDE4IFoiIGZpbGw9IiNiYmI1YWQiLz48cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI2IiBmaWxsPSIjNjg2MTJjIi8+PC9zdmc+',
+        'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNmMmYwZTYiPjxwYXRoIGQ9Ik0gNCA0IEwgMjAgNCBMIDIwIDIwIEwgNCAyMCBaIi8+PHBhdGggZD0iTSA1IDUgTCAxOSA1IEwgMTIgMTggWiIgZmlsbD0iI2Q0Yzc5ZSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iMiIgZmlsbD0iI2E5ODk3YiIvPjwvc3ZnPg=='
+      ] 
+    },
   ]);
 
   // Search state
@@ -52,6 +66,20 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setIsAdmin(false);
   };
+  
+  // --- Scroll lock for modal ---
+  useEffect(() => {
+    const isModalActuallyOpen = !!selectedArtisan;
+    if (isModalActuallyOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedArtisan]);
 
   // --- Handlers for Artisan Detail Modal ---
   const handleViewArtisan = (artisan: Artisan) => {
@@ -60,6 +88,28 @@ const App: React.FC = () => {
 
   const handleCloseArtisanModal = () => {
     setSelectedArtisan(null);
+  };
+  
+  const handleRateArtisan = (artisanId: number, rating: number) => {
+    setArtisans(prev =>
+      prev.map(artisan => {
+        if (artisan.id === artisanId) {
+          const newReviews = artisan.reviews + 1;
+          const newRating = ((artisan.rating * artisan.reviews) + rating) / newReviews;
+          return { ...artisan, rating: newRating, reviews: newReviews };
+        }
+        return artisan;
+      })
+    );
+     // Update selectedArtisan as well to see the change live in the modal
+    setSelectedArtisan(prev => {
+        if (prev && prev.id === artisanId) {
+             const newReviews = prev.reviews + 1;
+             const newRating = ((prev.rating * prev.reviews) + rating) / newReviews;
+             return { ...prev, rating: newRating, reviews: newReviews };
+        }
+        return prev;
+    });
   };
 
   // --- Dynamic Filter Options ---
@@ -104,7 +154,7 @@ const App: React.FC = () => {
     setArtisans(prev => prev.filter(a => a.id !== id));
   };
 
-  const isModalOpen = isSidebarOpen || !!selectedArtisan;
+  const isBackdropVisible = isSidebarOpen || !!selectedArtisan;
 
   return (
     <div className="min-h-screen bg-transparent animate-fade-in">
@@ -130,7 +180,7 @@ const App: React.FC = () => {
         onLogin={handleLogin}
         onLogout={handleLogout}
       />
-      <main className={`pt-28 px-4 sm:px-6 lg:px-8 pb-10 transition-all duration-300 ${isModalOpen ? 'blur-sm pointer-events-none' : ''}`}>
+      <main className={`pt-28 px-4 sm:px-6 lg:px-8 pb-10 transition-all duration-300 ${isBackdropVisible ? 'blur-sm pointer-events-none' : ''}`}>
         {isAdmin ? (
           <AdminPanel
             artisans={artisans}
@@ -159,6 +209,7 @@ const App: React.FC = () => {
         <ArtisanDetailModal 
           artisan={selectedArtisan}
           onClose={handleCloseArtisanModal}
+          onRate={handleRateArtisan}
         />
       )}
     </div>

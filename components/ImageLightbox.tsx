@@ -61,7 +61,10 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, currentIndex, onC
       {/* Prev button */}
       {images.length > 1 && (
         <button
-          onClick={goToPrevious}
+          onClick={(e) => {
+            e.stopPropagation();
+            goToPrevious();
+          }}
           className="absolute left-4 top-1/2 -translate-y-1/2 text-white p-3 bg-black/30 rounded-full hover:bg-black/50 transition-colors"
           aria-label="الصورة السابقة"
         >
@@ -74,7 +77,10 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, currentIndex, onC
       {/* Next button */}
       {images.length > 1 && (
         <button
-          onClick={goToNext}
+          onClick={(e) => {
+            e.stopPropagation();
+            goToNext();
+          }}
           className="absolute right-4 top-1/2 -translate-y-1/2 text-white p-3 bg-black/30 rounded-full hover:bg-black/50 transition-colors"
           aria-label="الصورة التالية"
         >
