@@ -6,9 +6,10 @@ interface ArtisanDetailModalProps {
   artisan: Artisan;
   onClose: () => void;
   onRate: (artisanId: number, rating: number) => void;
+  onStartChat: (artisan: Artisan) => void;
 }
 
-const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClose, onRate }) => {
+const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClose, onRate, onStartChat }) => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isRating, setIsRating] = useState(false);
   const [hasRated, setHasRated] = useState(false);
@@ -108,10 +109,13 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
             <div className="mt-5">
               <h3 className="font-bold text-gray-700 mb-2">للتواصل</h3>
               <div className="flex gap-3">
-                <a href={`https://wa.me/${formattedPhone}`} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors shadow-sm">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.487 5.235 3.487 8.413 0 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.687-1.475L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.888-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01s-.521.074-.792.372c-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                  <span>واتساب</span>
-                </a>
+                <button onClick={() => onStartChat(artisan)} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-sky-500 text-white font-semibold rounded-lg hover:bg-sky-600 transition-colors shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                    <path d="M15 7v2a2 2 0 01-2 2H9.574a1 1 0 01-.84-1.55l.08-.135A4.002 4.002 0 0113.8 6.5H15z" />
+                  </svg>
+                  <span>تواصل فوراً</span>
+                </button>
                 <a href={`tel:${formattedPhone}`} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-gray-700 font-semibold rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors shadow-sm">
                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -178,33 +182,61 @@ const ArtisanDetailModal: React.FC<ArtisanDetailModalProps> = ({ artisan, onClos
 };
 
 
+const ratingMessages = [
+  'سيء جداً',
+  'سيء',
+  'مقبول',
+  'جيد',
+  'ممتاز'
+];
+
 const StarRating: React.FC<{ onSubmit: (rating: number) => void }> = ({ onSubmit }) => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
 
+  const handleSubmit = () => {
+    if (rating > 0) {
+      onSubmit(rating);
+    }
+  };
+
+  const currentRatingValue = hover || rating;
+  const message = currentRatingValue > 0 ? ratingMessages[currentRatingValue - 1] : 'اختر تقييمك بالضغط على النجوم';
+
   return (
-    <div className="flex justify-center items-center p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-      {[...Array(5)].map((_, index) => {
-        const starValue = index + 1;
-        return (
-          <button
-            key={starValue}
-            type="button"
-            className="text-3xl transition-colors duration-200 transform hover:scale-125"
-            onClick={() => {
-              setRating(starValue);
-              onSubmit(starValue);
-            }}
-            onMouseEnter={() => setHover(starValue)}
-            onMouseLeave={() => setHover(rating)}
-            aria-label={`تقييم ${starValue} من 5 نجوم`}
-          >
-            <span className={starValue <= (hover || rating) ? 'text-yellow-400' : 'text-gray-300'}>
-              &#9733;
-            </span>
-          </button>
-        );
-      })}
+    <div className="w-full p-4 bg-yellow-50 border border-yellow-200 rounded-lg transition-all duration-300 text-center">
+      <div
+        className="flex justify-center items-center flex-row-reverse"
+        onMouseLeave={() => setHover(0)}
+      >
+        {[...Array(5)].map((_, index) => {
+          const starValue = index + 1;
+          return (
+            <button
+              key={starValue}
+              type="button"
+              className="text-4xl transition-all duration-200 transform hover:scale-125 focus:outline-none"
+              onClick={() => setRating(starValue)}
+              onMouseEnter={() => setHover(starValue)}
+              aria-label={`تقييم ${starValue} من 5 نجوم`}
+            >
+              <span className={starValue <= currentRatingValue ? 'text-yellow-400' : 'text-gray-300'}>
+                &#9733;
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-center text-sm font-semibold text-yellow-800 mt-2 h-5 transition-opacity duration-200">
+        {message}
+      </p>
+      <button
+        onClick={handleSubmit}
+        disabled={rating === 0}
+        className="w-full mt-4 px-4 py-2.5 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm"
+      >
+        إرسال التقييم
+      </button>
     </div>
   );
 };

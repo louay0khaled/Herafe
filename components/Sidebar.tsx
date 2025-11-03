@@ -1,25 +1,29 @@
 import React, { useState } from 'react';
+import type { Artisan } from '../App';
 
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
   isAdmin: boolean;
-  onLogin: (password: string) => boolean;
+  loggedInArtisan: Artisan | null;
+  onLogin: (username: string, password: string) => { success: boolean; message: string };
   onLogout: () => void;
+  onOpenConversationList: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLogin, onLogout }) => {
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, loggedInArtisan, onLogin, onLogout, onOpenConversationList }) => {
+  const [showLogin, setShowLogin] = useState(false);
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginMessage, setLoginMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
-  const handleAdminLoginAttempt = () => {
-    const success = onLogin(password);
-    if (success) {
-      setLoginMessage({ text: 'تم تسجيل الدخول بنجاح!', isError: false });
-      setShowAdminLogin(false);
-    } else {
-      setLoginMessage({ text: 'كلمة المرور غير صحيحة.', isError: true });
+  const handleLoginAttempt = () => {
+    const result = onLogin(username, password);
+    setLoginMessage({ text: result.message, isError: !result.success });
+    
+    if (result.success) {
+      setShowLogin(false);
+      setUsername('');
     }
     setPassword('');
 
@@ -32,6 +36,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLog
     onLogout();
     toggleSidebar();
   }
+
+  const isLoggedIn = isAdmin || !!loggedInArtisan;
 
   return (
     <>
@@ -65,6 +71,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLog
                 الصفحة الرئيسية
               </button>
             </li>
+            {!isLoggedIn && (
+               <li>
+                <button
+                  onClick={onOpenConversationList}
+                  className="block w-full text-right px-4 py-3 rounded-lg text-lg hover:bg-sky-100 text-gray-700 transition-colors"
+                >
+                  المحادثات
+                </button>
+              </li>
+            )}
             <li>
               <a href="#" className="block px-4 py-3 rounded-lg text-lg hover:bg-sky-100 text-gray-700 transition-colors">
                 خدماتنا
@@ -81,37 +97,62 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLog
               </a>
             </li>
             <hr className="my-4 border-gray-200" />
-            {isAdmin ? (
-               <li>
-                 <button
-                   onClick={handleLogoutClick}
-                   className="w-full text-right block px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 font-bold text-lg transition-colors"
-                 >
-                   تسجيل الخروج
-                 </button>
-               </li>
+            {isLoggedIn ? (
+               <>
+                {isAdmin && (
+                  <li>
+                    <span className="block px-4 py-3 text-lg text-gray-700 font-semibold">
+                      لوحة تحكم المسؤول
+                    </span>
+                  </li>
+                )}
+                {loggedInArtisan && (
+                  <li>
+                    <span className="block px-4 py-3 text-lg text-gray-700">
+                      أهلاً بك، <span className="font-bold">{loggedInArtisan.name}</span>
+                    </span>
+                  </li>
+                )}
+                <li>
+                  <button
+                    onClick={handleLogoutClick}
+                    className="w-full text-right block px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 font-bold text-lg transition-colors"
+                  >
+                    تسجيل الخروج
+                  </button>
+                </li>
+              </>
             ) : (
               <li>
                 <button
-                  onClick={() => setShowAdminLogin(!showAdminLogin)}
+                  onClick={() => setShowLogin(!showLogin)}
                   className="w-full text-right block px-4 py-3 rounded-lg hover:bg-sky-100 text-gray-700 text-lg transition-colors"
                 >
-                  تسجيل الدخول كمسؤول
+                  تسجيل الدخول
                 </button>
-                {showAdminLogin && (
+                {showLogin && (
                   <div className="p-3 mt-2 space-y-3 bg-sky-50 rounded-lg border border-sky-200">
-                    <label htmlFor="admin-password" className="sr-only">كلمة المرور</label>
+                    <label htmlFor="login-username" className="sr-only">اسم المستخدم</label>
                     <input
-                      id="admin-password"
+                      id="login-username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="اسم المستخدم"
+                      className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-shadow"
+                    />
+                    <label htmlFor="login-password" className="sr-only">كلمة المرور</label>
+                    <input
+                      id="login-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="كلمة المرور"
                       className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-shadow"
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdminLoginAttempt()}
+                      onKeyDown={(e) => e.key === 'Enter' && handleLoginAttempt()}
                     />
                     <button
-                      onClick={handleAdminLoginAttempt}
+                      onClick={handleLoginAttempt}
                       className="w-full px-3 py-2.5 text-base bg-sky-500 text-white font-semibold rounded-md hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
                     >
                       دخول

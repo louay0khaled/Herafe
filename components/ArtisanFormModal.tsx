@@ -14,7 +14,8 @@ const governorates = [
 
 const emptyFormState: Omit<Artisan, 'id' | 'rating' | 'reviews'> = { 
   name: '', craft: '', governorate: '', phone: '', description: '',
-  profileImage: null, coverImage: null, gallery: [] 
+  profileImage: null, coverImage: null, gallery: [],
+  username: '', password: ''
 };
 
 // Pexels API Key provided by the user
@@ -175,9 +176,24 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
               <textarea id="description" name="description" value={formData.description} onChange={handleInputChange} placeholder="وصف موجز عن الحرفي وخدماته" required className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" rows={3}></textarea>
             </div>
+
+             {/* Login Credentials */}
+            <div className="pt-4 mt-4 border-t border-gray-200">
+                <h4 className="text-md font-semibold text-gray-700 mb-3">بيانات تسجيل الدخول (اختياري للحرفي)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم</label>
+                    <input id="username" name="username" value={formData.username || ''} onChange={handleInputChange} placeholder="اسم فريد للحرفي" className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" />
+                  </div>
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
+                    <input type="password" id="password" name="password" value={formData.password || ''} onChange={handleInputChange} placeholder="أدخل كلمة المرور" className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" />
+                  </div>
+                </div>
+              </div>
              
              {/* Image Uploads */}
-            <div className="space-y-6 pt-2">
+            <div className="space-y-6 pt-4 mt-4 border-t border-gray-200">
               <div>
                 <label htmlFor="profileImage" className="block text-sm font-medium text-gray-700 mb-1">صورة الملف الشخصي</label>
                 <div className="flex items-center gap-4">

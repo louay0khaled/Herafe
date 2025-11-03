@@ -3,9 +3,13 @@ import Sidebar from './components/Sidebar';
 import SearchSection from './components/SearchSection';
 import AdminPanel from './components/AdminPanel';
 import ArtisanList from './components/ArtisanList';
-import ArtisanDetailModal from './components/ArtisanDetailModal'; // Import the new modal
+import ArtisanDetailModal from './components/ArtisanDetailModal';
+import ArtisanChatDashboard from './components/ArtisanChatDashboard';
+import ChatModal from './components/ChatModal';
+import ConversationListModal from './components/ConversationListModal';
 
-// Define the type for an artisan
+// --- TYPE DEFINITIONS ---
+
 export interface Artisan {
   id: number;
   name: string;
@@ -18,12 +22,51 @@ export interface Artisan {
   profileImage: string | null;
   coverImage: string | null;
   gallery: string[];
+  username?: string;
+  password?: string;
 }
 
+export interface Message {
+  id: number;
+  text: string;
+  sender: 'user' | 'artisan';
+  timestamp: number;
+}
+
+export interface Conversation {
+  id: string; // Composite key: "customerId-artisanId"
+  artisanId: number;
+  customerId: string;
+  messages: Message[];
+  artisanName: string;
+  artisanProfileImage: string | null;
+}
+
+// --- MAIN APP COMPONENT ---
+
 const App: React.FC = () => {
+  // --- STATE MANAGEMENT ---
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedArtisan, setSelectedArtisan] = useState<Artisan | null>(null); // State for the detail modal
+  const [loggedInArtisan, setLoggedInArtisan] = useState<Artisan | null>(null);
+  const [selectedArtisan, setSelectedArtisan] = useState<Artisan | null>(null);
+  
+  // Chat state
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [customerId, setCustomerId] = useState<string>('');
+  const [isConversationListVisible, setConversationListVisible] = useState(false);
+  
+  // Initial customer ID setup from local storage
+  useEffect(() => {
+    let id = localStorage.getItem('hirafy_customer_id');
+    if (!id) {
+      id = `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('hirafy_customer_id', id);
+    }
+    setCustomerId(id);
+  }, []);
+
 
   const [artisans, setArtisans] = useState<Artisan[]>([
     { 
@@ -41,7 +84,9 @@ const App: React.FC = () => {
         'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlN2VkZWMiPjxwYXRoIGQ9Ik0gNCA0IEwgMjAgNCBMIDIwIDIwIEwgNCAyMCBaIi8+PHBhdGggZD0iTSA2IDcgTCAxMCAxMiBMIDE0IDkgTCAxOCA4IEwgMTggMTggTCA2IDE4IFoiIGZpbGw9IiNhM2FlYWYiLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjciIHI9IjIiIGZpbGw9IiNmYmMxNjQiLz48L3N2Zz4=',
         'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlZGU5ZTQiPjxwYXRoIGQ9Ik0gNCA0IEwgMjAgNCBMIDIwIDIwIEwgNCAyMCBaIi8+PHBhdGggZD0iTSA0IDE4IEwgNyAxNCBMIDEyIDE2IEwgMTUgMTMgTCAyMCAxNyBMIDIwIDE4IFoiIGZpbGw9IiNiYmI1YWQiLz48cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI2IiBmaWxsPSIjNjg2MTJjIi8+PC9zdmc+',
         'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNmMmYwZTYiPjxwYXRoIGQ9Ik0gNCA0IEwgMjAgNCBMIDIwIDIwIEwgNCAyMCBaIi8+PHBhdGggZD0iTSA1IDUgTCAxOSA1IEwgMTIgMTggWiIgZmlsbD0iI2Q0Yzc5ZSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iMiIgZmlsbD0iI2E5ODk3YiIvPjwvc3ZnPg=='
-      ] 
+      ],
+      username: 'ahmad_najjar',
+      password: 'password123'
     },
   ]);
 
@@ -54,22 +99,35 @@ const App: React.FC = () => {
     setSidebarOpen(!isSidebarOpen);
   };
 
-  const handleLogin = (password: string): boolean => {
-    if (password === 'أنا لؤي') {
+  const handleLogin = (username: string, password: string): { success: boolean; message: string } => {
+    // Admin check
+    if (username.toLowerCase() === 'l_ouai' && password === 'أنا لؤي') {
       setIsAdmin(true);
-      setSidebarOpen(false); // Close sidebar on successful login
-      return true;
+      setLoggedInArtisan(null);
+      setSidebarOpen(false);
+      return { success: true, message: 'تم تسجيل الدخول كمسؤول بنجاح!' };
     }
-    return false;
+
+    // Artisan check
+    const artisan = artisans.find(a => a.username && a.password && a.username === username && a.password === password);
+    if (artisan) {
+      setLoggedInArtisan(artisan);
+      setIsAdmin(false);
+      setSidebarOpen(false);
+      return { success: true, message: `أهلاً بك، ${artisan.name}!` };
+    }
+
+    return { success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة.' };
   };
 
   const handleLogout = () => {
     setIsAdmin(false);
+    setLoggedInArtisan(null);
   };
   
-  // --- Scroll lock for modal ---
+  // --- Scroll lock for modals ---
   useEffect(() => {
-    const isModalActuallyOpen = !!selectedArtisan;
+    const isModalActuallyOpen = !!selectedArtisan || !!activeConversationId || isConversationListVisible;
     if (isModalActuallyOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -79,7 +137,7 @@ const App: React.FC = () => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedArtisan]);
+  }, [selectedArtisan, activeConversationId, isConversationListVisible]);
 
   // --- Handlers for Artisan Detail Modal ---
   const handleViewArtisan = (artisan: Artisan) => {
@@ -111,6 +169,64 @@ const App: React.FC = () => {
         return prev;
     });
   };
+  
+  // --- CHAT HANDLERS ---
+  const handleStartChat = (artisan: Artisan) => {
+    const conversationId = `${customerId}-${artisan.id}`;
+    const existingConversation = conversations.find(c => c.id === conversationId);
+
+    if (!existingConversation) {
+      const newConversation: Conversation = {
+        id: conversationId,
+        artisanId: artisan.id,
+        customerId: customerId,
+        messages: [],
+        artisanName: artisan.name,
+        artisanProfileImage: artisan.profileImage
+      };
+      setConversations(prev => [...prev, newConversation]);
+    }
+    
+    setSelectedArtisan(null); // Close detail modal
+    setActiveConversationId(conversationId);
+  };
+  
+  const handleViewChatForArtisan = (conversationId: string) => {
+    setActiveConversationId(conversationId);
+  }
+
+  const handleCloseChat = () => {
+    setActiveConversationId(null);
+  };
+
+  const handleSendMessage = (conversationId: string, text: string) => {
+    const sender = loggedInArtisan ? 'artisan' : 'user';
+    
+    const newMessage: Message = {
+      id: Date.now(),
+      text,
+      sender,
+      timestamp: Date.now(),
+    };
+
+    setConversations(prev =>
+      prev.map(convo =>
+        convo.id === conversationId
+          ? { ...convo, messages: [...convo.messages, newMessage] }
+          : convo
+      )
+    );
+  };
+
+  const handleOpenConversationList = () => {
+    setSidebarOpen(false);
+    setConversationListVisible(true);
+  };
+
+  const handleCloseConversationList = () => {
+    setConversationListVisible(false);
+  };
+
 
   // --- Dynamic Filter Options ---
   const uniqueCrafts = useMemo(() => {
@@ -122,7 +238,6 @@ const App: React.FC = () => {
     const governorates = artisans.map(a => a.governorate.trim()).filter(Boolean);
     return [...new Set(governorates)].sort();
   }, [artisans]);
-
 
   // Memoized filtered artisans for performance
   const filteredArtisans = useMemo(() => {
@@ -140,8 +255,7 @@ const App: React.FC = () => {
     });
   }, [artisans, searchQuery, selectedGovernorate, selectedCraft]);
 
-
-  // --- Artisan CRUD Functions ---
+  // --- Artisan CRUD Functions (for Admin) ---
   const addArtisan = (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => {
      setArtisans(prev => [...prev, { ...artisan, id: Date.now(), rating: 0, reviews: 0 }]);
   };
@@ -154,7 +268,11 @@ const App: React.FC = () => {
     setArtisans(prev => prev.filter(a => a.id !== id));
   };
 
-  const isBackdropVisible = isSidebarOpen || !!selectedArtisan;
+  // --- RENDER LOGIC ---
+  const isBackdropVisible = isSidebarOpen || !!selectedArtisan || isConversationListVisible;
+
+  const activeConversation = conversations.find(c => c.id === activeConversationId);
+  const artisanForActiveChat = activeConversation ? artisans.find(a => a.id === activeConversation.artisanId) : null;
 
   return (
     <div className="min-h-screen bg-transparent animate-fade-in">
@@ -177,8 +295,10 @@ const App: React.FC = () => {
         isOpen={isSidebarOpen}
         toggleSidebar={toggleSidebar}
         isAdmin={isAdmin}
+        loggedInArtisan={loggedInArtisan}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        onOpenConversationList={handleOpenConversationList}
       />
       <main className={`pt-28 px-4 sm:px-6 lg:px-8 pb-10 transition-all duration-300 ${isBackdropVisible ? 'blur-sm pointer-events-none' : ''}`}>
         {isAdmin ? (
@@ -187,6 +307,12 @@ const App: React.FC = () => {
             onAddArtisan={addArtisan}
             onUpdateArtisan={updateArtisan}
             onDeleteArtisan={deleteArtisan}
+          />
+        ) : loggedInArtisan ? (
+          <ArtisanChatDashboard
+            loggedInArtisan={loggedInArtisan}
+            conversations={conversations.filter(c => c.artisanId === loggedInArtisan.id)}
+            onViewChat={handleViewChatForArtisan}
           />
         ) : (
           <>
@@ -210,6 +336,28 @@ const App: React.FC = () => {
           artisan={selectedArtisan}
           onClose={handleCloseArtisanModal}
           onRate={handleRateArtisan}
+          onStartChat={handleStartChat}
+        />
+      )}
+
+      {activeConversation && artisanForActiveChat && (
+        <ChatModal
+          conversation={activeConversation}
+          artisan={artisanForActiveChat}
+          currentUserType={loggedInArtisan ? 'artisan' : 'user'}
+          onSendMessage={handleSendMessage}
+          onClose={handleCloseChat}
+        />
+      )}
+
+      {isConversationListVisible && (
+        <ConversationListModal
+            conversations={conversations}
+            onClose={handleCloseConversationList}
+            onSelectConversation={(conversationId) => {
+                handleCloseConversationList();
+                handleViewChatForArtisan(conversationId);
+            }}
         />
       )}
     </div>
