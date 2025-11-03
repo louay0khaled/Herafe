@@ -91,7 +91,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent animate-fade-in">
        <header className="fixed top-0 left-0 right-0 z-30 text-center pt-6 pb-4">
-        <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-sky-700 tracking-wider">
+        <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-sky-700 tracking-wider select-none">
           حِرَفي
         </h1>
       </header>
