@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { Artisan } from '../App';
 import ArtisanFormModal from './ArtisanFormModal'; // Import the new modal component
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdateArtisan, onDeleteArtisan }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdateArtisan, onDeleteArtisan, onDeleteGalleryImage }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingArtisan, setEditingArtisan] = useState<Artisan | null>(null);
 
@@ -17,7 +17,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
   };
 
   const handleDeleteClick = (id: number) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا الحرفي؟ لا يمكن التراجع عن هذا الإجراء.')) {
+    if (window.confirm('هل أنت متأكد؟ سيتم حذف هذا الحرفي بشكل كامل ودائم، بما في ذلك حساب تسجيل الدخول الخاص به، وملفه الشخصي، وجميع صوره. لا يمكن التراجع عن هذا الإجراء.')) {
       onDeleteArtisan(id);
     }
   };
@@ -27,11 +27,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
     setEditingArtisan(null);
   };
 
-  const handleSaveArtisan = (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews'> | Artisan) => {
+  const handleSaveArtisan = (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews' | 'auth_user_id'> | Artisan, password?: string) => {
     if ('id' in artisanData) {
-      onUpdateArtisan(artisanData);
-    } else {
-      onAddArtisan(artisanData);
+      onUpdateArtisan(artisanData, password);
+    } else if (password) {
+      onAddArtisan(artisanData, password);
     }
     handleCloseModal();
   };
@@ -78,6 +78,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
                           <span className="font-medium bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">{artisan.craft}</span>
                           <span>{artisan.governorate}</span>
                           <span className="tracking-wider" dir="ltr">{artisan.phone}</span>
+                          <span className="text-gray-500">{artisan.email}</span>
                       </div>
                     </div>
                   </div>
@@ -106,6 +107,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ artisans, onAddArtisan, onUpdat
           artisan={editingArtisan}
           onClose={handleCloseModal}
           onSave={handleSaveArtisan}
+          onDeleteGalleryImage={onDeleteGalleryImage}
         />
       )}
     </>
@@ -116,7 +118,8 @@ export default AdminPanel;
 
 interface AdminPanelProps {
   artisans: Artisan[];
-  onAddArtisan: (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => Promise<void>;
-  onUpdateArtisan: (artisan: Artisan) => Promise<void>;
+  onAddArtisan: (artisan: Omit<Artisan, 'id' | 'rating' | 'reviews' | 'auth_user_id'>, password: string) => Promise<void>;
+  onUpdateArtisan: (artisan: Artisan, password?: string) => Promise<void>;
   onDeleteArtisan: (id: number) => Promise<void>;
+  onDeleteGalleryImage: (imageUrl: string) => Promise<void>;
 }

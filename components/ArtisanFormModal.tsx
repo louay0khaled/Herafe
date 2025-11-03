@@ -4,8 +4,9 @@ import { supabase } from '../supabaseClient';
 
 interface ArtisanFormModalProps {
   artisan: Artisan | null;
-  onSave: (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews'> | Artisan) => void;
+  onSave: (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews' | 'auth_user_id'> | Artisan, password?: string) => void;
   onClose: () => void;
+  onDeleteGalleryImage: (imageUrl: string) => Promise<void>;
 }
 
 const governorates = [
@@ -14,7 +15,7 @@ const governorates = [
 ];
 
 const emptyFormState = { 
-  name: '', craft: '', governorate: '', phone: '', description: '',
+  name: '', craft: '', governorate: '', phone: '', description: '', email: '',
   profile_image_url: null, cover_image_url: null, gallery_urls: [],
 };
 
@@ -56,17 +57,19 @@ const uploadImage = async (file: File, type: 'profile_image_url' | 'cover_image_
     return data.publicUrl;
 };
 
-const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, onSave }) => {
+const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, onSave, onDeleteGalleryImage }) => {
   const [formData, setFormData] = useState<any>(emptyFormState);
+  const [password, setPassword] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (artisan) {
-      const {id, rating, reviews, ...editableData} = artisan;
+      const {id, rating, reviews, auth_user_id, ...editableData} = artisan;
       setFormData(editableData);
     } else {
       setFormData(emptyFormState);
     }
+    setPassword('');
   }, [artisan]);
   
   // Handle Escape key to close modal
@@ -98,27 +101,43 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
     if (e.target.files) {
       setIsUploading(true);
       const files = Array.from(e.target.files);
-      const uploadPromises = files.map(file => uploadImage(file, 'gallery'));
+      // Fix: Add a type assertion `as File` because TypeScript incorrectly infers `file` as `unknown`.
+      const uploadPromises = files.map(file => uploadImage(file as File, 'gallery'));
       const urls = (await Promise.all(uploadPromises)).filter(Boolean) as string[];
       setFormData(prev => ({ ...prev, gallery_urls: [...prev.gallery_urls, ...urls] }));
       setIsUploading(false);
     }
   };
 
-  const removeGalleryImage = (index: number) => {
-    // Note: This only removes from the client state. 
-    // A complete implementation would also remove the file from Supabase Storage.
+  const removeGalleryImage = async (index: number) => {
+    const urlToRemove = formData.gallery_urls[index];
+    
+    // First, attempt to delete the image from storage via RPC
+    await onDeleteGalleryImage(urlToRemove);
+    
+    // Then, update the local state regardless of deletion success
+    // to ensure the UI updates immediately.
     setFormData(prev => ({...prev, gallery_urls: prev.gallery_urls.filter((_, i) => i !== index)}));
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (artisan) {
-      onSave({ ...formData, id: artisan.id, rating: artisan.rating, reviews: artisan.reviews });
-    } else {
-      onSave(formData);
+    const isNew = !artisan;
+    const finalPassword = isNew || password.trim() !== '' ? password.trim() : undefined;
+
+    if (isNew) {
+        if (!finalPassword) {
+            alert('يجب إدخال كلمة مرور للحرفي الجديد.');
+            return;
+        }
+        onSave(formData, finalPassword);
+    } else if (artisan) {
+        const fullArtisanData = { ...formData, id: artisan.id, rating: artisan.rating, reviews: artisan.reviews, auth_user_id: artisan.auth_user_id };
+        onSave(fullArtisanData, finalPassword);
     }
   };
+  
+  const isNewArtisan = !artisan;
 
   return (
     <div 
@@ -160,6 +179,19 @@ const ArtisanFormModal: React.FC<ArtisanFormModalProps> = ({ artisan, onClose, o
                 </select>
               </div>
             </div>
+
+            {/* Auth credentials */}
+            <div className="p-4 bg-sky-50/50 rounded-lg border border-sky-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني (للدخول)</label>
+                    <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="artisan@example.com" required className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" />
+                </div>
+                <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
+                    <input type="password" id="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isNewArtisan ? "كلمة مرور قوية" : "اتركه فارغاً للحفاظ عليها"} required={isNewArtisan} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" />
+                </div>
+            </div>
+
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
               <textarea id="description" name="description" value={formData.description} onChange={handleInputChange} placeholder="وصف موجز عن الحرفي وخدماته" required className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 shadow-sm" rows={3}></textarea>

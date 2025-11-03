@@ -5,15 +5,19 @@ interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
   isAdmin: boolean;
+  loggedInArtisan: Artisan | null;
   onLogout: () => void;
   onViewConversations: () => void;
   onGoToHome: () => void;
   onInitiateLogin: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLogout, onViewConversations, onGoToHome, onInitiateLogin }) => {
-  const isLoggedIn = isAdmin;
-  const user = isAdmin ? { name: 'المسؤول', craft: 'لوحة التحكم', profile_image_url: null } : null;
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, loggedInArtisan, onLogout, onViewConversations, onGoToHome, onInitiateLogin }) => {
+  const isLoggedIn = isAdmin || !!loggedInArtisan;
+  
+  const user = isAdmin 
+    ? { name: 'المسؤول', craft: 'لوحة التحكم', profile_image_url: null, email: 'admin@admin.hirafy' } 
+    : loggedInArtisan;
 
   return (
     <>
@@ -45,8 +49,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLog
           {/* Navigation */}
           <nav className="flex-grow p-4 space-y-2">
             <NavItem icon={<HomeIcon />} text="الصفحة الرئيسية" onClick={onGoToHome} />
-            {!isAdmin && (
+             {/* Show "My Conversations" only for guests */}
+            {!isLoggedIn && (
               <NavItem icon={<ChatIcon />} text="محادثاتي" onClick={onViewConversations} />
+            )}
+             {/* Show "Dashboard" link for artisans, which is their home page */}
+            {loggedInArtisan && (
+               <NavItem icon={<DashboardIcon />} text="لوحة التحكم" onClick={onGoToHome} />
             )}
           </nav>
 
@@ -60,13 +69,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isAdmin, onLog
                       <img src={user.profile_image_url} alt={user.name} className="h-12 w-12 rounded-full object-cover" />
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xl">
-                        {user.name.charAt(0)}
+                        {isAdmin ? <AdminIcon /> : user.name.charAt(0)}
                       </div>
                     )}
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800">{user.name}</p>
-                    <p className="text-sm text-slate-600">{user.craft}</p>
+                    <p className="text-sm text-slate-600">{isAdmin ? user.email : user.craft}</p>
                   </div>
                 </div>
                 <button
@@ -106,5 +115,7 @@ const NavItem: React.FC<{ icon: React.ReactNode; text: string; onClick: () => vo
 const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
 const ChatIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" /></svg>;
+const DashboardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
+const AdminIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 
 export default Sidebar;

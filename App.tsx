@@ -9,6 +9,7 @@ import ChatPage from './components/ChatPage';
 import ConversationListPage from './components/ConversationListPage';
 import LoginModal from './components/LoginModal';
 import SplashScreen from './components/SplashScreen';
+import ArtisanDashboard from './components/ArtisanDashboard';
 
 // --- TYPE DEFINITIONS ---
 
@@ -24,6 +25,8 @@ export interface Artisan {
   profile_image_url: string | null;
   cover_image_url: string | null;
   gallery_urls: string[];
+  email: string; // For login
+  auth_user_id: string; // Link to supabase.auth.users
 }
 
 export interface Message {
@@ -51,6 +54,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loggedInArtisan, setLoggedInArtisan] = useState<Artisan | null>(null);
   const [selectedArtisan, setSelectedArtisan] = useState<Artisan | null>(null);
   const [view, setView] = useState<'main' | 'chatList' | 'chatDetail'>('main');
   
@@ -84,10 +88,25 @@ const App: React.FC = () => {
     // Set up Supabase auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: any) => {
         setSession(session);
-        if (session?.user?.email?.endsWith('@admin.hirafy')) {
-            setIsAdmin(true);
-        } else {
-            setIsAdmin(false);
+        setLoggedInArtisan(null);
+        setIsAdmin(false);
+
+        if (session?.user) {
+            // Check for admin first
+            if (session.user.email?.endsWith('@admin.hirafy')) {
+                setIsAdmin(true);
+            } else {
+                 // Check if it's an artisan
+                const { data: artisanProfile, error } = await supabase
+                    .from('artisans')
+                    .select('*')
+                    .eq('auth_user_id', session.user.id)
+                    .single();
+                
+                if (artisanProfile) {
+                    setLoggedInArtisan(artisanProfile);
+                }
+            }
         }
     });
 
@@ -123,7 +142,10 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setLoggedInArtisan(null);
+    setIsAdmin(false);
     setView('main');
+    setSidebarOpen(false);
   };
   
   // --- Scroll lock for modals ---
@@ -166,12 +188,18 @@ const App: React.FC = () => {
 
   const handleBackFromChat = () => {
     setActiveConversationId(null);
-    setView('chatList');
+    // If an artisan is logged in, going back from chat should land on their dashboard ('main' view).
+    // Otherwise, it goes to the customer's conversation list.
+    if (!loggedInArtisan) {
+      setView('chatList');
+    } else {
+       setView('main');
+    }
   };
 
   const handleSendMessage = (conversationId: string, text: string) => {
-    // This should insert a message into the 'messages' table
-    const newMessage: Message = { id: Date.now(), text, sender: 'user', timestamp: Date.now() };
+    const sender = loggedInArtisan ? 'artisan' : 'user';
+    const newMessage: Message = { id: Date.now(), text, sender, timestamp: Date.now() };
     setConversations(prev =>
       prev.map(convo => convo.id === conversationId ? { ...convo, messages: [...convo.messages, newMessage] } : convo)
     );
@@ -195,49 +223,135 @@ const App: React.FC = () => {
       );
     });
   }, [artisans, searchQuery, selectedGovernorate, selectedCraft]);
+  
+    // --- DETAILED ERROR HANDLER FOR EDGE FUNCTIONS ---
+    const handleFunctionError = (error: any, action: string) => {
+        console.error(`Error ${action}:`, error);
+        const defaultMessage = `فشل ${action}.`;
+        
+        let detailMessage = 'لا توجد تفاصيل إضافية.';
+        try {
+            // Attempt to stringify the entire error object to get all available details.
+            // The second argument (`Object.getOwnPropertyNames(error)`) ensures non-enumerable properties like 'message' are included.
+            detailMessage = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+        } catch(e) {
+            // If stringify fails (e.g., circular references), fall back to a simpler representation.
+            detailMessage = `حدث خطأ غير متوقع أثناء عرض تفاصيل الخطأ: ${error.message || 'لا توجد رسالة.'}`
+        }
 
-  const addArtisan = async (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews'>) => {
-    const { data, error } = await supabase.from('artisans').insert([artisanData]).select();
-    if (error) {
-      console.error('Error adding artisan:', error);
-    } else if (data) {
-      setArtisans(prev => [...prev, data[0]]);
-    }
-  };
+        alert(`${defaultMessage}\n\nتفاصيل الخطأ الكاملة:\n${detailMessage}`);
+    };
 
-  const updateArtisan = async (updatedArtisan: Artisan) => {
-    const { id, ...updateData } = updatedArtisan;
-    const { data, error } = await supabase.from('artisans').update(updateData).eq('id', id).select();
-    if (error) {
-      console.error('Error updating artisan:', error);
-    } else if (data) {
-      setArtisans(prev => prev.map(a => a.id === id ? data[0] : a));
-    }
-  };
+    // --- SECURE CRUD Functions using Supabase Edge Functions ---
 
-  const deleteArtisan = async (id: number) => {
-    const { error } = await supabase.from('artisans').delete().eq('id', id);
-    if (error) {
-      console.error('Error deleting artisan:', error);
-    } else {
-      setArtisans(prev => prev.filter(a => a.id !== id));
-    }
-  };
+    const addArtisan = async (artisanData: Omit<Artisan, 'id' | 'rating' | 'reviews' | 'auth_user_id'>, password: string) => {
+        try {
+            const { data, error } = await supabase.functions.invoke('manage-artisan', {
+                body: {
+                    action: 'CREATE',
+                    payload: { artisanData, password }
+                }
+            });
+
+            if (error) {
+                handleFunctionError(error, 'إضافة الحرفي');
+            } else if (data) {
+                setArtisans(prev => [...prev, data]);
+            }
+        } catch (e: any) {
+            handleFunctionError(e, 'عند محاولة إضافة الحرفي');
+        }
+    };
+
+    const updateArtisan = async (updatedArtisan: Artisan, newPassword?: string) => {
+        try {
+            // Remove properties that shouldn't be in the main update payload for the 'artisans' table
+            const { rating, reviews, ...restOfArtisan } = updatedArtisan;
+    
+            const { data, error } = await supabase.functions.invoke('manage-artisan', {
+                body: {
+                    action: 'UPDATE',
+                    payload: { 
+                        updatedArtisan: restOfArtisan, 
+                        newPassword: newPassword || null 
+                    }
+                }
+            });
+
+            if (error) {
+                handleFunctionError(error, 'تحديث الحرفي');
+            } else if (data) {
+                // Make sure to merge back the original rating and reviews
+                const finalUpdatedArtisan = { ...data, rating, reviews };
+                setArtisans(prev => prev.map(a => a.id === updatedArtisan.id ? finalUpdatedArtisan : a));
+            }
+        } catch (e: any) {
+            handleFunctionError(e, 'عند محاولة تحديث الحرفي');
+        }
+    };
+
+    const deleteArtisan = async (id: number) => {
+        try {
+            const artisanToDelete = artisans.find(a => a.id === id);
+            if (!artisanToDelete) {
+                alert("لم يتم العثور على الحرفي المراد حذفه.");
+                return;
+            }
+
+            const { error } = await supabase.functions.invoke('manage-artisan', {
+                body: {
+                    action: 'DELETE',
+                    payload: { id: artisanToDelete.id, auth_user_id: artisanToDelete.auth_user_id }
+                }
+            });
+
+            if (error) {
+                handleFunctionError(error, 'حذف الحرفي');
+            } else {
+                setArtisans(prev => prev.filter(a => a.id !== id));
+            }
+        } catch (e: any) {
+            handleFunctionError(e, 'عند محاولة حذف الحرفي');
+        }
+    };
+
+    const deleteGalleryImage = async (imageUrl: string) => {
+        const { error } = await supabase.functions.invoke('manage-artisan', {
+            body: {
+                action: 'DELETE_GALLERY_IMAGE',
+                payload: { imageUrl }
+            }
+        });
+
+        if (error) {
+            console.error('Failed to delete gallery image from storage:', error);
+            handleFunctionError(error, `حذف الصورة من المخزن`);
+        }
+    };
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const artisanForActiveChat = activeConversation ? artisans.find(a => a.id === activeConversation.artisanId) : null;
+  const loggedInUserType = loggedInArtisan ? 'artisan' : 'user';
 
   const renderView = () => {
-    if (view === 'chatDetail' && activeConversation && artisanForActiveChat) {
-      return (
-        <ChatPage
-          conversation={activeConversation}
-          artisan={artisanForActiveChat}
-          currentUserType={'user'}
-          onSendMessage={handleSendMessage}
-          onBack={handleBackFromChat}
-        />
-      );
+    if (view === 'chatDetail' && activeConversation) {
+        const artisanForChat = loggedInArtisan || (artisanForActiveChat);
+        if (artisanForChat) {
+          return (
+            <ChatPage
+              conversation={activeConversation}
+              artisan={artisanForChat}
+              currentUserType={loggedInUserType}
+              onSendMessage={handleSendMessage}
+              onBack={handleBackFromChat}
+            />
+          );
+        }
+    }
+    
+    if (loggedInArtisan) {
+        const artisanConversations = conversations.filter(c => c.artisanId === loggedInArtisan.id);
+        return <ArtisanDashboard loggedInArtisan={loggedInArtisan} conversations={artisanConversations} onViewChat={handleViewChat} />;
     }
 
     const mainContent = () => {
@@ -247,7 +361,7 @@ const App: React.FC = () => {
             case 'main':
             default:
                 if (isAdmin) {
-                    return <AdminPanel artisans={artisans} onAddArtisan={addArtisan} onUpdateArtisan={updateArtisan} onDeleteArtisan={deleteArtisan} />;
+                    return <AdminPanel artisans={artisans} onAddArtisan={addArtisan} onUpdateArtisan={updateArtisan} onDeleteArtisan={deleteArtisan} onDeleteGalleryImage={deleteGalleryImage} />;
                 }
                 return <>
                     <SearchSection searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedGovernorate={selectedGovernorate} setSelectedGovernorate={setSelectedGovernorate} governorates={uniqueGovernorates} selectedCraft={selectedCraft} setSelectedCraft={setSelectedCraft} crafts={uniqueCrafts} />
@@ -275,6 +389,7 @@ const App: React.FC = () => {
                 isOpen={isSidebarOpen}
                 toggleSidebar={toggleSidebar}
                 isAdmin={isAdmin}
+                loggedInArtisan={loggedInArtisan}
                 onLogout={handleLogout}
                 onViewConversations={handleViewConversationList}
                 onGoToHome={handleGoToHome}
